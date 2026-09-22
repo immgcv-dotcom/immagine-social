@@ -240,7 +240,18 @@ function Step({ n, title, text }) { return <div className="step"><span>{n}</span
 function Calendar({ weeks, currentWeek, posts, setCurrentWeekId, setEditingPost, setPage, onApprove, onReopen, onBulk }) {
   const currentPosts = posts.filter(p => p.week_id === currentWeek?.id).sort((a,b)=>a.post_date.localeCompare(b.post_date))
   return <>
-    <PageHeading title="Calendário semanal" description="Revise cada publicação antes de liberar a semana." actions={<><button className="btn ghost" onClick={onBulk}><Pencil size={16}/> Alterar semana toda</button>{currentWeek?.status === 'aprovada' ? <button className="btn warning" onClick={onReopen}>Voltar para edição</button> : <button className="btn primary" onClick={onApprove}><CheckCircle2 size={16}/> Aprovar semana</button>}</>} />
+    <PageHeading title="Calendário semanal" description="Revise cada publicação antes de liberar a semana." actions={<><button className="btn ghost" onClick={onBulk}><Pencil size={16}/> Alterar semana toda</button>{{currentWeek?.status === 'programada'
+  ? <button className="btn ghost" disabled>
+      <CheckCircle2 size={16}/> Semana programada
+    </button>
+  : currentWeek?.status === 'aprovada'
+    ? <button className="btn warning" onClick={onReopen}>
+        Voltar para edição
+      </button>
+    : <button className="btn primary" onClick={onApprove}>
+        <CheckCircle2 size={16}/> Aprovar semana
+      </button>
+} ? <button className="btn warning" onClick={onReopen}>Voltar para edição</button> : <button className="btn primary" onClick={onApprove}><CheckCircle2 size={16}/> Aprovar semana</button>}</>} />
     <div className="week-selector">{weeks.map(w => <button key={w.id} className={w.id === currentWeek?.id ? 'active' : ''} onClick={() => setCurrentWeekId(w.id)}><strong>{w.label}</strong><StatusBadge status={w.status}/></button>)}</div>
     <div className="calendar-grid">
       {currentPosts.map(post => <article className="day-card" key={post.id}>
