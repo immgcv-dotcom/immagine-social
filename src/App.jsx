@@ -240,28 +240,7 @@ function Step({ n, title, text }) { return <div className="step"><span>{n}</span
 function Calendar({ weeks, currentWeek, posts, setCurrentWeekId, setEditingPost, setPage, onApprove, onReopen, onBulk }) {
   const currentPosts = posts.filter(p => p.week_id === currentWeek?.id).sort((a,b)=>a.post_date.localeCompare(b.post_date))
   return <>
-    <PageHeading title="Calendário semanal" description="Revise cada publicação antes de liberar a semana." actions={<><button className="btn ghost" onClick={onBulk}><Pencil size={16}/> Alterar semana toda</button>{{currentWeek?.status === 'programada'
-  ? <button className="btn ghost" disabled>
-      <CheckCircle2 size={16}/> Semana programada
-    </button>
-  : currentWeek?.status === 'aprovada'
-    ? <button className="btn warning" onClick={onReopen}>
-        Voltar para edição
-      </button>
-    : <button className="btn primary" onClick={onApprove}>
-        <CheckCircle2 size={16}/> Aprovar semana
-      </button>
-} ? <button className="btn warning" onClick={onReopen}>Voltar para edição</button> : <button className="btn primary" onClick={onApprove}><CheckCircle2 size={16}/> Aprovar semana</button>}</>} />
-    <div className="week-selector">{weeks.map(w => <button key={w.id} className={w.id === currentWeek?.id ? 'active' : ''} onClick={() => setCurrentWeekId(w.id)}><strong>{w.label}</strong><StatusBadge status={w.status}/></button>)}</div>
-    <div className="calendar-grid">
-      {currentPosts.map(post => <article className="day-card" key={post.id}>
-        <div className="day-card-top"><div><span>{post.weekday}</span><strong>{formatDate(post.post_date)}</strong></div><StatusBadge status={post.status}/></div>
-        <div className="day-art">{post.image_url ? <img src={resolveImage(post.image_url)} alt={post.title}/> : <div className="empty-art"><FileImage/><span>Sem arte</span></div>}</div>
-        <div className="day-body"><span className="eyebrow">{post.service}</span><h3>{post.title || 'Sem título'}</h3><p>{post.subtitle}</p><div className="meta-row"><Clock3 size={14}/>{toTime(post.publish_time)} · {post.channel === 'ambos' ? 'Instagram + WhatsApp' : post.channel}</div><button className="btn ghost full" onClick={() => { setEditingPost(post); setPage('editor') }}>Editar dia <ChevronRight size={16}/></button></div>
-      </article>)}
-    </div>
-  </>
-}
+  <PageHeading title="Calendário semanal" description="Revise cada publicação antes de liberar a semana." actions={<><button className="btn ghost" onClick={onBulk}><Pencil size={16}/> Alterar semana toda</button>{currentWeek?.status === 'programada' ? <button className="btn ghost" disabled><CheckCircle2 size={16}/> Semana programada</button> : currentWeek?.status === 'aprovada' ? <button className="btn warning" onClick={onReopen}>Voltar para edição</button> : <button className="btn primary" onClick={onApprove}><CheckCircle2 size={16}/> Aprovar semana</button>}</>} />
 
 <PageHeading
   title="Calendário semanal"
