@@ -203,7 +203,30 @@ function Dashboard({ weeks, currentWeek, posts, setPage, setEditingPost, onNewWe
   const next = currentPosts.find(p => p.status === 'para_aprovacao') || currentPosts.find(p => p.status === 'em_criacao')
 
   return <>
-    <PageHeading title="Dashboard" description="Visão rápida da semana e do que precisa da sua atenção." actions={<><button className="btn ghost" onClick={() => setPage('calendario')}>Abrir semana</button><button className="btn primary" onClick={onNewWeek}><Plus size={16}/> Nova semana</button></>} />
+   <PageHeading
+  title="Calendário semanal"
+  description="Revise cada publicação antes de liberar a semana."
+  actions={
+    <>
+      <button className="btn ghost" onClick={onBulk}>
+        <Pencil size={16}/> Alterar semana toda
+      </button>
+
+      {currentWeek?.status === 'programada'
+        ? <button className="btn ghost" disabled>
+            <CheckCircle2 size={16}/> Semana programada
+          </button>
+        : currentWeek?.status === 'aprovada'
+          ? <button className="btn warning" onClick={onReopen}>
+              Voltar para edição
+            </button>
+          : <button className="btn primary" onClick={onApprove}>
+              <CheckCircle2 size={16}/> Aprovar semana
+            </button>
+      }
+    </>
+  }
+/>
     <div className="stats-grid">
       <Stat label="Posts prontos" value={ready} helper="na semana atual" />
       <Stat label="Pendentes" value={pending} helper="aguardando aprovação" />
