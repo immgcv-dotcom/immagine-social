@@ -203,30 +203,7 @@ function Dashboard({ weeks, currentWeek, posts, setPage, setEditingPost, onNewWe
   const next = currentPosts.find(p => p.status === 'para_aprovacao') || currentPosts.find(p => p.status === 'em_criacao')
 
   return <>
-   <PageHeading
-  title="Calendário semanal"
-  description="Revise cada publicação antes de liberar a semana."
-  actions={
-    <>
-      <button className="btn ghost" onClick={onBulk}>
-        <Pencil size={16}/> Alterar semana toda
-      </button>
-
-      {currentWeek?.status === 'programada'
-        ? <button className="btn ghost" disabled>
-            <CheckCircle2 size={16}/> Semana programada
-          </button>
-        : currentWeek?.status === 'aprovada'
-          ? <button className="btn warning" onClick={onReopen}>
-              Voltar para edição
-            </button>
-          : <button className="btn primary" onClick={onApprove}>
-              <CheckCircle2 size={16}/> Aprovar semana
-            </button>
-      }
-    </>
-  }
-/>
+  <PageHeading title="Dashboard" description="Visão rápida da semana e do que precisa da sua atenção." actions={<><button className="btn ghost" onClick={() => setPage('calendario')}>Abrir semana</button><button className="btn primary" onClick={onNewWeek}><Plus size={16}/> Nova semana</button></>} />
     <div className="stats-grid">
       <Stat label="Posts prontos" value={ready} helper="na semana atual" />
       <Stat label="Pendentes" value={pending} helper="aguardando aprovação" />
@@ -286,18 +263,30 @@ function Calendar({ weeks, currentWeek, posts, setCurrentWeekId, setEditingPost,
   </>
 }
 
-function Editor({ post, assets, onSave, onBack, onToast }) {
-  const [form, setForm] = useState(post || {})
-  useEffect(() => setForm(post || {}), [post])
-  if (!post) return <div className="panel">Selecione uma publicação no calendário.</div>
-  const imageUrl = resolveImage(form.image_url)
+<PageHeading
+  title="Calendário semanal"
+  description="Revise cada publicação antes de liberar a semana."
+  actions={
+    <>
+      <button className="btn ghost" onClick={onBulk}>
+        <Pencil size={16}/> Alterar semana toda
+      </button>
 
-  function field(name, value) { setForm(prev => ({ ...prev, [name]: value })) }
-  async function copy(text, label) { await navigator.clipboard.writeText(text || ''); onToast(`${label} copiado.`) }
-  function download() {
-    if (!imageUrl) return onToast('Esta publicação ainda não tem arte.', 'error')
-    const a = document.createElement('a'); a.href = imageUrl; a.download = `${form.post_date}-${(form.service || 'arte').replace(/\s+/g,'-').toLowerCase()}.png`; a.target = '_blank'; a.rel = 'noopener'; a.click()
+      {currentWeek?.status === 'programada'
+        ? <button className="btn ghost" disabled>
+            <CheckCircle2 size={16}/> Semana programada
+          </button>
+        : currentWeek?.status === 'aprovada'
+          ? <button className="btn warning" onClick={onReopen}>
+              Voltar para edição
+            </button>
+          : <button className="btn primary" onClick={onApprove}>
+              <CheckCircle2 size={16}/> Aprovar semana
+            </button>
+      }
+    </>
   }
+/>
 
   return <>
     <PageHeading title={`${post.weekday} · ${formatDate(post.post_date)}`} description="Edite textos, horário, status e imagem. A prévia atualiza na hora." actions={<button className="btn ghost" onClick={onBack}>Voltar</button>} />
