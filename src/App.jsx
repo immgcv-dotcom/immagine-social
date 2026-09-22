@@ -390,7 +390,26 @@ function App() {
     if(w.error) return notify(w.error.message,'error')
     if(ids.length){const p=await supabase.from('posts').update({status:'aprovada',ready:true}).in('id',ids);if(p.error)return notify(p.error.message,'error')}
     await supabase.from('approval_logs').insert({week_id:currentWeek.id,action:'approved',details:{source:'web'}})
-    await loadData(); notify('Semana aprovada. Nenhuma publicação foi feita automaticamente.')
+   const { data: bufferResult, error: bufferError } =
+  await supabase.functions.invoke('buffer-schedule-approved', {
+    body: { week_id: currentWeek.id }
+  })
+
+if (bufferError) {
+  await loadData()
+  return notify(
+    `Semana aprovada, mas houve erro ao programar no Buffer: ${bufferError.message}`,
+    'error'
+  )
+}
+
+await loadData()
+
+notify(
+  bufferResult?.scheduled_count
+    ? `Semana aprovada e ${bufferResult.scheduled_count} post(s) programado(s) no Buffer.`
+    : 'Semana aprovada. Nenhum novo post precisava ser programado.'
+)
   }
 
   async function reopenWeek() {
