@@ -239,59 +239,240 @@ function Step({ n, title, text }) { return <div className="step"><span>{n}</span
 
 function Calendar({ weeks, currentWeek, posts, setCurrentWeekId, setEditingPost, setPage, onApprove, onReopen, onBulk }) {
   const currentPosts = posts.filter(p => p.week_id === currentWeek?.id).sort((a,b)=>a.post_date.localeCompare(b.post_date))
+
   return <>
-  <PageHeading title="Calendário semanal" description="Revise cada publicação antes de liberar a semana." actions={<><button className="btn ghost" onClick={onBulk}><Pencil size={16}/> Alterar semana toda</button>{currentWeek?.status === 'programada' ? <button className="btn ghost" disabled><CheckCircle2 size={16}/> Semana programada</button> : currentWeek?.status === 'aprovada' ? <button className="btn warning" onClick={onReopen}>Voltar para edição</button> : <button className="btn primary" onClick={onApprove}><CheckCircle2 size={16}/> Aprovar semana</button>}</>} />
-
-<PageHeading
-  title="Calendário semanal"
-  description="Revise cada publicação antes de liberar a semana."
-  actions={
-    <>
-      <button className="btn ghost" onClick={onBulk}>
-        <Pencil size={16}/> Alterar semana toda
-      </button>
-
-      {currentWeek?.status === 'programada'
-        ? <button className="btn ghost" disabled>
-            <CheckCircle2 size={16}/> Semana programada
+    <PageHeading
+      title="Calendário semanal"
+      description="Revise cada publicação antes de liberar a semana."
+      actions={
+        <>
+          <button className="btn ghost" onClick={onBulk}>
+            <Pencil size={16}/> Alterar semana toda
           </button>
-        : currentWeek?.status === 'aprovada'
-          ? <button className="btn warning" onClick={onReopen}>
-              Voltar para edição
-            </button>
-          : <button className="btn primary" onClick={onApprove}>
-              <CheckCircle2 size={16}/> Aprovar semana
-            </button>
-      }
-    </>
-  }
-/>
 
-  return <>
-    <PageHeading title={`${post.weekday} · ${formatDate(post.post_date)}`} description="Edite textos, horário, status e imagem. A prévia atualiza na hora." actions={<button className="btn ghost" onClick={onBack}>Voltar</button>} />
-    <div className="editor-grid">
-      <section className="panel form-panel">
-        <div className="form-grid two"><Field label="Serviço / tema"><input value={form.service || ''} onChange={e=>field('service',e.target.value)}/></Field><Field label="Horário"><input type="time" value={toTime(form.publish_time)} onChange={e=>field('publish_time',e.target.value)}/></Field></div>
-        <Field label="Título principal"><input value={form.title || ''} onChange={e=>field('title',e.target.value)}/></Field>
-        <Field label="Subtítulo"><input value={form.subtitle || ''} onChange={e=>field('subtitle',e.target.value)}/></Field>
-        <Field label="Legenda do Instagram"><textarea rows="6" value={form.caption || ''} onChange={e=>field('caption',e.target.value)}/></Field>
-        <Field label="Texto para Status do WhatsApp"><textarea rows="3" value={form.whatsapp_text || ''} onChange={e=>field('whatsapp_text',e.target.value)}/></Field>
-        <Field label="Hashtags"><textarea rows="2" value={form.hashtags || ''} onChange={e=>field('hashtags',e.target.value)}/></Field>
-        <Field label="Imagem / arte"><select value={form.image_url || ''} onChange={e=>field('image_url',e.target.value)}><option value="">Sem imagem</option>{assets.map(a => <option key={a.id} value={a.public_url}>{a.name}</option>)}</select></Field>
-        <Field label="Observações"><textarea rows="3" value={form.notes || ''} onChange={e=>field('notes',e.target.value)}/></Field>
-        <div className="form-grid two"><Field label="Canal"><select value={form.channel || 'ambos'} onChange={e=>field('channel',e.target.value)}><option value="ambos">Instagram + WhatsApp</option><option value="instagram">Instagram</option><option value="whatsapp">WhatsApp</option></select></Field><Field label="Status"><select value={form.status || 'em_criacao'} onChange={e=>field('status',e.target.value)}><option value="em_criacao">Em criação</option><option value="para_aprovacao">Para aprovação</option><option value="aprovada">Aprovada</option><option value="programada">Programada</option><option value="publicada">Publicada</option></select></Field></div>
-        <label className="check-row"><input type="checkbox" checked={!!form.ready} onChange={e=>field('ready',e.target.checked)}/><span>Marcar como pronto para revisão</span></label>
-        <div className="action-row"><button className="btn primary" onClick={() => onSave(form)}><Save size={16}/> Salvar alterações</button><button className="btn ghost" onClick={() => copy(form.caption,'Legenda')}><Copy size={16}/> Copiar legenda</button><button className="btn ghost" onClick={() => copy(form.whatsapp_text,'Texto do WhatsApp')}><Copy size={16}/> Copiar WhatsApp</button><button className="btn ghost" onClick={download}><Download size={16}/> Baixar arte</button></div>
-      </section>
-      <section className="preview-card">
-        <div className="preview-top"><span>Prévia</span><StatusBadge status={form.status}/></div>
-        <div className="preview-art">{imageUrl ? <img src={imageUrl} alt={form.title}/> : <div className="empty-art"><FileImage/><span>Escolha uma imagem</span></div>}</div>
-        <div className="preview-copy"><strong>{form.title}</strong><span>{form.subtitle}</span><p>{form.caption}</p><small>{form.hashtags}</small></div>
-      </section>
+          {currentWeek?.status === 'programada'
+            ? <button className="btn ghost" disabled>
+                <CheckCircle2 size={16}/> Semana programada
+              </button>
+            : currentWeek?.status === 'aprovada'
+              ? <button className="btn warning" onClick={onReopen}>
+                  Voltar para edição
+                </button>
+              : <button className="btn primary" onClick={onApprove}>
+                  <CheckCircle2 size={16}/> Aprovar semana
+                </button>
+          }
+        </>
+      }
+    />
+
+    <div className="week-selector">
+      {weeks.map(w =>
+        <button
+          key={w.id}
+          className={w.id === currentWeek?.id ? 'active' : ''}
+          onClick={() => setCurrentWeekId(w.id)}
+        >
+          <strong>{w.label}</strong>
+          <StatusBadge status={w.status}/>
+        </button>
+      )}
+    </div>
+
+    <div className="calendar-grid">
+      {currentPosts.map(post =>
+        <article className="day-card" key={post.id}>
+          <div className="day-card-top">
+            <div>
+              <span>{post.weekday}</span>
+              <strong>{formatDate(post.post_date)}</strong>
+            </div>
+            <StatusBadge status={post.status}/>
+          </div>
+
+          <div className="day-art">
+            {post.image_url
+              ? <img src={resolveImage(post.image_url)} alt={post.title}/>
+              : <div className="empty-art"><FileImage/><span>Sem arte</span></div>
+            }
+          </div>
+
+          <div className="day-body">
+            <span className="eyebrow">{post.service}</span>
+            <h3>{post.title || 'Sem título'}</h3>
+            <p>{post.subtitle}</p>
+
+            <div className="meta-row">
+              <Clock3 size={14}/>
+              {toTime(post.publish_time)} · {post.channel === 'ambos' ? 'Instagram + WhatsApp' : post.channel}
+            </div>
+
+            <button
+              className="btn ghost full"
+              onClick={() => {
+                setEditingPost(post)
+                setPage('editor')
+              }}
+            >
+              Editar dia <ChevronRight size={16}/>
+            </button>
+          </div>
+        </article>
+      )}
     </div>
   </>
 }
 
+function Editor({ post, assets, onSave, onBack, onToast }) {
+  const [form, setForm] = useState(post || {})
+
+  useEffect(() => setForm(post || {}), [post])
+
+  if (!post) return <div className="panel">Selecione uma publicação no calendário.</div>
+
+  const imageUrl = resolveImage(form.image_url)
+
+  function field(name, value) {
+    setForm(prev => ({ ...prev, [name]: value }))
+  }
+
+  async function copy(text, label) {
+    await navigator.clipboard.writeText(text || '')
+    onToast(`${label} copiado.`)
+  }
+
+  function download() {
+    if (!imageUrl) return onToast('Esta publicação ainda não tem arte.', 'error')
+
+    const a = document.createElement('a')
+    a.href = imageUrl
+    a.download = `${form.post_date}-${(form.service || 'arte').replace(/\s+/g,'-').toLowerCase()}.png`
+    a.target = '_blank'
+    a.rel = 'noopener'
+    a.click()
+  }
+
+  return <>
+    <PageHeading
+      title={`${post.weekday} · ${formatDate(post.post_date)}`}
+      description="Edite textos, horário, status e imagem. A prévia atualiza na hora."
+      actions={<button className="btn ghost" onClick={onBack}>Voltar</button>}
+    />
+
+    <div className="editor-grid">
+      <section className="panel form-panel">
+        <div className="form-grid two">
+          <Field label="Serviço / tema">
+            <input value={form.service || ''} onChange={e=>field('service',e.target.value)}/>
+          </Field>
+
+          <Field label="Horário">
+            <input type="time" value={toTime(form.publish_time)} onChange={e=>field('publish_time',e.target.value)}/>
+          </Field>
+        </div>
+
+        <Field label="Título principal">
+          <input value={form.title || ''} onChange={e=>field('title',e.target.value)}/>
+        </Field>
+
+        <Field label="Subtítulo">
+          <input value={form.subtitle || ''} onChange={e=>field('subtitle',e.target.value)}/>
+        </Field>
+
+        <Field label="Legenda do Instagram">
+          <textarea rows="6" value={form.caption || ''} onChange={e=>field('caption',e.target.value)}/>
+        </Field>
+
+        <Field label="Texto para Status do WhatsApp">
+          <textarea rows="3" value={form.whatsapp_text || ''} onChange={e=>field('whatsapp_text',e.target.value)}/>
+        </Field>
+
+        <Field label="Hashtags">
+          <textarea rows="2" value={form.hashtags || ''} onChange={e=>field('hashtags',e.target.value)}/>
+        </Field>
+
+        <Field label="Imagem / arte">
+          <select value={form.image_url || ''} onChange={e=>field('image_url',e.target.value)}>
+            <option value="">Sem imagem</option>
+            {assets.map(a => <option key={a.id} value={a.public_url}>{a.name}</option>)}
+          </select>
+        </Field>
+
+        <Field label="Observações">
+          <textarea rows="3" value={form.notes || ''} onChange={e=>field('notes',e.target.value)}/>
+        </Field>
+
+        <div className="form-grid two">
+          <Field label="Canal">
+            <select value={form.channel || 'ambos'} onChange={e=>field('channel',e.target.value)}>
+              <option value="ambos">Instagram + WhatsApp</option>
+              <option value="instagram">Instagram</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </Field>
+
+          <Field label="Status">
+            <select value={form.status || 'em_criacao'} onChange={e=>field('status',e.target.value)}>
+              <option value="em_criacao">Em criação</option>
+              <option value="para_aprovacao">Para aprovação</option>
+              <option value="aprovada">Aprovada</option>
+              <option value="programada">Programada</option>
+              <option value="publicada">Publicada</option>
+            </select>
+          </Field>
+        </div>
+
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={!!form.ready}
+            onChange={e=>field('ready',e.target.checked)}
+          />
+          <span>Marcar como pronto para revisão</span>
+        </label>
+
+        <div className="action-row">
+          <button className="btn primary" onClick={() => onSave(form)}>
+            <Save size={16}/> Salvar alterações
+          </button>
+
+          <button className="btn ghost" onClick={() => copy(form.caption,'Legenda')}>
+            <Copy size={16}/> Copiar legenda
+          </button>
+
+          <button className="btn ghost" onClick={() => copy(form.whatsapp_text,'Texto do WhatsApp')}>
+            <Copy size={16}/> Copiar WhatsApp
+          </button>
+
+          <button className="btn ghost" onClick={download}>
+            <Download size={16}/> Baixar arte
+          </button>
+        </div>
+      </section>
+
+      <section className="preview-card">
+        <div className="preview-top">
+          <span>Prévia</span>
+          <StatusBadge status={form.status}/>
+        </div>
+
+        <div className="preview-art">
+          {imageUrl
+            ? <img src={imageUrl} alt={form.title}/>
+            : <div className="empty-art"><FileImage/><span>Escolha uma imagem</span></div>
+          }
+        </div>
+
+        <div className="preview-copy">
+          <strong>{form.title}</strong>
+          <span>{form.subtitle}</span>
+          <p>{form.caption}</p>
+          <small>{form.hashtags}</small>
+        </div>
+      </section>
+    </div>
+  </>
+}
 function Field({ label, children }) { return <label className="field"><span>{label}</span>{children}</label> }
 
 function BulkDialog({ week, posts, onClose, onSave }) {
