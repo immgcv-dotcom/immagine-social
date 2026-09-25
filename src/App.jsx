@@ -54,6 +54,41 @@ const LOCAL_ASSETS = [
     public_url: `${BASE}assets/arte-banners.png`,
     created_at: '2026-09-22T12:00:00Z'
   },
+  {
+    id: 'week-2026-09-28-fachadas',
+    name: 'Semana 28/09 — Fachadas que comunicam',
+    type: 'arte_aprovada',
+    public_url: `${BASE}assets/semana-2026-09-28/fachadas.webp`,
+    created_at: '2026-09-25T12:00:00Z'
+  },
+  {
+    id: 'week-2026-09-29-grande-formato',
+    name: 'Semana 29/09 — Grande formato',
+    type: 'arte_aprovada',
+    public_url: `${BASE}assets/semana-2026-09-28/grande-formato.webp`,
+    created_at: '2026-09-25T12:00:00Z'
+  },
+  {
+    id: 'week-2026-09-30-adesivos',
+    name: 'Semana 30/09 — Adesivos que transformam',
+    type: 'arte_aprovada',
+    public_url: `${BASE}assets/semana-2026-09-28/adesivos.webp`,
+    created_at: '2026-09-25T12:00:00Z'
+  },
+  {
+    id: 'week-2026-10-01-papelaria',
+    name: 'Semana 01/10 — Papelaria personalizada',
+    type: 'arte_aprovada',
+    public_url: `${BASE}assets/arte-papelaria.png`,
+    created_at: '2026-09-25T12:00:00Z'
+  },
+  {
+    id: 'week-2026-10-02-banners',
+    name: 'Semana 02/10 — Banners e faixas',
+    type: 'arte_aprovada',
+    public_url: `${BASE}assets/arte-banners.png`,
+    created_at: '2026-09-25T12:00:00Z'
+  },
 ]
 
 const STATUS = {
@@ -80,6 +115,10 @@ function resolveImage(url) {
   if (!url) return null
   if (url.startsWith('/assets/')) return `${BASE}${url.slice(1)}`
   return url
+}
+
+function canSharePost(status) {
+  return ['aprovada', 'programada', 'publicada'].includes(status)
 }
 
 async function shareWhatsAppStatus(post, onToast) {
@@ -389,7 +428,7 @@ function Sidebar({
 
         <div className="sidebar-foot">
           <strong>Você imagina e a gente realiza.</strong>
-          <span>@immaginecvrp · São Paulo</span>
+          <span>@immaginecvrp · (17) 99137-6531</span>
         </div>
       </aside>
 
@@ -850,12 +889,24 @@ function Calendar({
               </div>
 
               {post.channel !== 'instagram' && (
-                <button
-                  className="btn primary full"
-                  onClick={() => shareWhatsAppStatus(post, onToast)}
-                >
-                  WhatsApp · Compartilhar status
-                </button>
+                canSharePost(post.status)
+                  ? (
+                    <button
+                      className="btn primary full"
+                      onClick={() => shareWhatsAppStatus(post, onToast)}
+                    >
+                      WhatsApp · Compartilhar status
+                    </button>
+                  )
+                  : (
+                    <button
+                      className="btn ghost full"
+                      disabled
+                      title="Disponível somente depois da aprovação"
+                    >
+                      WhatsApp · Aguardando aprovação
+                    </button>
+                  )
               )}
 
               <button
@@ -1071,11 +1122,11 @@ function Editor({
                   Aprovada
                 </option>
 
-                <option value="programada">
+                <option value="programada" disabled>
                   Programada
                 </option>
 
-                <option value="publicada">
+                <option value="publicada" disabled>
                   Publicada
                 </option>
               </select>
@@ -1104,12 +1155,24 @@ function Editor({
             </button>
 
             {form.channel !== 'instagram' && (
-              <button
-                className="btn primary"
-                onClick={() => shareWhatsAppStatus(form, onToast)}
-              >
-                WhatsApp · Compartilhar status
-              </button>
+              canSharePost(form.status)
+                ? (
+                  <button
+                    className="btn primary"
+                    onClick={() => shareWhatsAppStatus(form, onToast)}
+                  >
+                    WhatsApp · Compartilhar status
+                  </button>
+                )
+                : (
+                  <button
+                    className="btn ghost"
+                    disabled
+                    title="Disponível somente depois da aprovação"
+                  >
+                    WhatsApp · Aguardando aprovação
+                  </button>
+                )
             )}
 
             <button
@@ -1188,6 +1251,7 @@ function Field({
 function BulkDialog({
   week,
   posts,
+  assets,
   onClose,
   onSave
 }) {
@@ -1361,6 +1425,31 @@ function BulkDialog({
                       updateDay('subtitle', e.target.value)
                     }
                   />
+                </Field>
+
+                <Field label="Imagem / arte">
+                  <select
+                    value={selected.image_url || ''}
+                    onChange={e =>
+                      updateDay('image_url', e.target.value)
+                    }
+                  >
+                    <option value="">
+                      Sem imagem
+                    </option>
+
+                    {assets
+                      .filter(a => a.type !== 'logo')
+                      .map(a => (
+                        <option
+                          key={a.id}
+                          value={a.public_url}
+                        >
+                          {a.name}
+                        </option>
+                      ))
+                    }
+                  </select>
                 </Field>
 
                 <Field label="Legenda">
@@ -2669,6 +2758,7 @@ function App() {
       {bulkOpen && currentWeek && (
         <BulkDialog
           week={currentWeek}
+          assets={assets}
           posts={posts
             .filter(p => p.week_id === currentWeek.id)
             .sort((a, b) =>
