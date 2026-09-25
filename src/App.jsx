@@ -55,27 +55,6 @@ const LOCAL_ASSETS = [
     created_at: '2026-09-22T12:00:00Z'
   },
   {
-    id: 'week-2026-09-28-fachadas',
-    name: 'Semana 28/09 — Fachadas que comunicam',
-    type: 'arte_aprovada',
-    public_url: `${BASE}assets/semana-2026-09-28/fachadas.webp`,
-    created_at: '2026-09-25T12:00:00Z'
-  },
-  {
-    id: 'week-2026-09-29-grande-formato',
-    name: 'Semana 29/09 — Grande formato',
-    type: 'arte_aprovada',
-    public_url: `${BASE}assets/semana-2026-09-28/grande-formato.webp`,
-    created_at: '2026-09-25T12:00:00Z'
-  },
-  {
-    id: 'week-2026-09-30-adesivos',
-    name: 'Semana 30/09 — Adesivos que transformam',
-    type: 'arte_aprovada',
-    public_url: `${BASE}assets/semana-2026-09-28/adesivos.webp`,
-    created_at: '2026-09-25T12:00:00Z'
-  },
-  {
     id: 'week-2026-10-01-papelaria',
     name: 'Semana 01/10 — Papelaria personalizada',
     type: 'arte_aprovada',
@@ -2111,6 +2090,21 @@ function App() {
 
   async function approveWeek() {
     if (!currentWeek) return
+
+    const weekPosts = posts
+      .filter(p => p.week_id === currentWeek.id)
+      .sort((a, b) => a.post_date.localeCompare(b.post_date))
+
+    const incomplete = weekPosts.filter(
+      p => !p.ready || !p.image_url
+    )
+
+    if (weekPosts.length !== 5 || incomplete.length) {
+      return notify(
+        `A semana só pode ser aprovada com 5 publicações prontas e com arte. Faltam ${Math.max(0, 5 - weekPosts.length) + incomplete.length} item(ns).`,
+        'error'
+      )
+    }
 
     if (
       !window.confirm(
