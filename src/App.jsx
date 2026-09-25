@@ -1883,6 +1883,54 @@ function App() {
       if (a.error) throw a.error
       if (s.error) throw s.error
 
+      // Garante que a semana operacional correta exista. Se a matriz visual
+      // aprovada ainda não estiver cadastrada, criamos somente os slots,
+      // sem inventar novas artes.
+      if (!w.data?.some(x => x.id === '2026-09-28')) {
+        const reviewWeek = {
+          id: '2026-09-28',
+          label: '28 de setembro a 2 de outubro de 2026',
+          start_date: '2026-09-28',
+          end_date: '2026-10-02',
+          status: 'para_aprovacao',
+          campaign: 'Semana 28/09–02/10',
+          general_instruction: 'Usar exclusivamente a matriz visual aprovada de 17–21/08.',
+          notes: 'Não publicar nem agendar antes da aprovação explícita.',
+          default_time: toTime(s.data?.default_time)
+        }
+
+        const wi = await supabase.from('weeks').insert(reviewWeek).select().single()
+        if (wi.error) throw wi.error
+        w.data = [wi.data, ...(w.data || [])]
+
+        const weekdays = ['Segunda','Terça','Quarta','Quinta','Sexta']
+        const reviewPosts = weekdays.map((weekday, i) => {
+          const date = addDays('2026-09-28', i)
+          return {
+            id: date,
+            week_id: '2026-09-28',
+            post_date: date,
+            weekday,
+            service: '',
+            title: 'Arte pendente — aguardando matriz aprovada',
+            subtitle: 'Referência oficial: artes aprovadas de 17–21/08.',
+            caption: '',
+            whatsapp_text: '',
+            hashtags: '#ComunicacaoVisual #Immagine #SaoJoseDoRioPreto',
+            image_url: null,
+            publish_time: toTime(s.data?.default_time),
+            channel: 'ambos',
+            notes: 'Não improvisar outro layout.',
+            status: 'para_aprovacao',
+            ready: false
+          }
+        })
+
+        const pi = await supabase.from('posts').insert(reviewPosts).select()
+        if (pi.error) throw pi.error
+        p.data = [...(p.data || []), ...(pi.data || [])]
+      }
+
       setWeeks(w.data || [])
       setPosts(p.data || [])
       setDbAssets(a.data || [])
