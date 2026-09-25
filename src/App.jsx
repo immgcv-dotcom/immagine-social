@@ -561,6 +561,14 @@ function Dashboard({
             <StatusBadge status={currentWeek?.status}/>
           </div>
 
+          <div className="week-focus-banner">
+            <div>
+              <span className="eyebrow">Semana em revisão</span>
+              <strong>{currentWeek?.start_date === '2026-09-28' ? '28 de setembro a 2 de outubro' : currentWeek?.label}</strong>
+            </div>
+            <span>{currentPosts.filter(p => ['aprovada','programada','publicada'].includes(p.status)).length}/5 aprovadas</span>
+          </div>
+
           <p className="muted">
             {currentWeek?.campaign}
           </p>
@@ -1790,7 +1798,7 @@ function App() {
 
   const [currentWeekId, setCurrentWeekId] = useState(
     localStorage.getItem('immagine-current-week') ||
-    '2026-09-21'
+    '2026-09-28'
   )
 
   const [page, setPage] = useState('dashboard')
@@ -1882,10 +1890,14 @@ function App() {
       setDbAssets(a.data || [])
       setSettings(s.data)
 
-      if (
-        !w.data?.some(x => x.id === currentWeekId) &&
-        w.data?.[0]
-      ) {
+      const targetWeek = w.data?.find(x => x.id === '2026-09-28')
+      const selectedExists = w.data?.some(x => x.id === currentWeekId)
+
+      // A semana operacional atual é 28/09–02/10. Migra automaticamente
+      // quem ainda ficou preso à semana anterior no localStorage.
+      if (targetWeek && (!selectedExists || currentWeekId === '2026-09-21')) {
+        setCurrentWeekId(targetWeek.id)
+      } else if (!selectedExists && w.data?.[0]) {
         setCurrentWeekId(w.data[0].id)
       }
 
@@ -1967,7 +1979,7 @@ function App() {
 
     if (
       !window.confirm(
-        'Aprovar esta semana? O Instagram será programado automaticamente no Buffer. O WhatsApp ficará disponível para compartilhar em 1 toque.'
+        'Aprovar esta semana? Esta ação registra a aprovação, mas não publica nem agenda nada automaticamente.'
       )
     ) {
       return
@@ -2025,33 +2037,12 @@ function App() {
         }
       })
 
-    const {
-      data: bufferResult,
-      error: bufferError
-    } = await supabase.functions.invoke(
-      'buffer-schedule-approved',
-      {
-        body: {
-          week_id: currentWeek.id
-        }
-      }
-    )
-
-    if (bufferError) {
-      await loadData()
-
-      return notify(
-        `Semana aprovada, mas houve erro ao programar no Buffer: ${bufferError.message}`,
-        'error'
-      )
-    }
-
+    // Aprovação e publicação são etapas separadas.
+    // Nenhuma integração externa é acionada automaticamente aqui.
     await loadData()
 
     notify(
-      bufferResult?.scheduled_count
-        ? `Semana aprovada e ${bufferResult.scheduled_count} post(s) programado(s) no Buffer.`
-        : 'Semana aprovada e programação do Instagram conferida.'
+      'Semana aprovada. Nenhuma publicação ou programação foi realizada.'
     )
   }
 
