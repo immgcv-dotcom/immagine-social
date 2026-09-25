@@ -704,6 +704,7 @@ function Calendar({
   onApprove,
   onSchedule,
   onPublishNow,
+  onRefresh,
   onReopen,
   onBulk,
   onToast
@@ -719,6 +720,14 @@ function Calendar({
         description="Revise cada publicação antes de liberar a semana."
         actions={
           <>
+            <button
+              className="btn ghost"
+              onClick={onRefresh}
+            >
+              <RefreshCw size={16}/>
+              Atualizar
+            </button>
+
             <button
               className="btn ghost"
               onClick={onBulk}
@@ -2717,6 +2726,7 @@ function App() {
         onApprove={approveWeek}
         onSchedule={scheduleWeek}
         onPublishNow={publishPostNow}
+        onRefresh={loadData}
         onReopen={reopenWeek}
         onBulk={() => setBulkOpen(true)}
         onToast={notify}
