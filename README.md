@@ -7,7 +7,8 @@ Painel de planejamento, edição e aprovação de conteúdo da Immagine Comunica
 - GitHub Pages: hospedagem do front-end
 - Supabase Free: autenticação, banco de dados e biblioteca de arquivos
 - Sem API paga de IA
-- Sem publicação automática antes da aprovação explícita
+- Sem Lovable em produção
+- Aprovação separada de publicação/agendamento
 
 ## Funcionalidades
 
@@ -34,3 +35,10 @@ Projeto: `immagine-social`
 Região: `sa-east-1`
 
 O front-end usa somente a chave pública (publishable key). Nenhuma chave secreta é armazenada no repositório.
+
+
+## Regra operacional
+
+A semana de revisão ativa é 28/09/2026 a 02/10/2026. A semana 21–25/09 permanece como histórico. O sistema não inventa uma nova identidade visual quando a matriz aprovada não estiver disponível: os slots ficam pendentes até a arte oficial ser cadastrada.
+
+A aprovação registra a decisão no Supabase, mas não dispara Buffer, IA paga ou qualquer serviço externo. A edição do calendário, textos, imagens e aprovações funciona com o próprio front-end e Supabase.

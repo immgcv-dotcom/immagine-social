@@ -290,8 +290,7 @@ function Login({ onToast }) {
           </h1>
 
           <p>
-            Instagram programado automaticamente pelo Buffer e WhatsApp
-            preparado para compartilhar em um toque.
+            Planeje, revise e aprove o conteúdo da Immagine em um só lugar, sem depender de serviços pagos para editar o calendário.
           </p>
         </div>
       </div>
@@ -536,7 +535,7 @@ function Dashboard({
         <Stat
           label="Aprovados"
           value={approved}
-          helper="inclui programados e publicados"
+          helper="na semana selecionada"
         />
 
         <Stat
@@ -559,6 +558,14 @@ function Dashboard({
             </div>
 
             <StatusBadge status={currentWeek?.status}/>
+          </div>
+
+          <div className="week-focus-banner">
+            <div>
+              <span className="eyebrow">Semana em revisão</span>
+              <strong>{currentWeek?.start_date === '2026-09-28' ? '28 de setembro a 2 de outubro' : currentWeek?.label}</strong>
+            </div>
+            <span>{currentPosts.filter(p => ['aprovada','programada','publicada'].includes(p.status)).length}/5 aprovadas</span>
           </div>
 
           <p className="muted">
@@ -663,7 +670,7 @@ function Dashboard({
           <Step
             n="3"
             title="Aprovar"
-            text="Instagram vai para o Buffer e WhatsApp fica pronto para compartilhar."
+            text="A aprovação fica registrada; publicar é uma ação separada e consciente."
           />
         </div>
       </section>
@@ -1703,8 +1710,7 @@ function SettingsPage({
           </strong>
 
           <p>
-            Depois da aprovação, o Instagram é programado automaticamente
-            pelo Buffer. Para o WhatsApp Status, use o botão Compartilhar
+            Depois da aprovação, nada é publicado automaticamente. Para o WhatsApp Status, use o botão Compartilhar
             status no celular para enviar arte e texto em um toque.
           </p>
         </div>
@@ -1790,7 +1796,7 @@ function App() {
 
   const [currentWeekId, setCurrentWeekId] = useState(
     localStorage.getItem('immagine-current-week') ||
-    '2026-09-21'
+    '2026-09-28'
   )
 
   const [page, setPage] = useState('dashboard')
@@ -1877,15 +1883,67 @@ function App() {
       if (a.error) throw a.error
       if (s.error) throw s.error
 
+      // Garante que a semana operacional correta exista. Se a matriz visual
+      // aprovada ainda não estiver cadastrada, criamos somente os slots,
+      // sem inventar novas artes.
+      if (!w.data?.some(x => x.id === '2026-09-28')) {
+        const reviewWeek = {
+          id: '2026-09-28',
+          label: '28 de setembro a 2 de outubro de 2026',
+          start_date: '2026-09-28',
+          end_date: '2026-10-02',
+          status: 'para_aprovacao',
+          campaign: 'Semana 28/09–02/10',
+          general_instruction: 'Usar exclusivamente a matriz visual aprovada de 17–21/08.',
+          notes: 'Não publicar nem agendar antes da aprovação explícita.',
+          default_time: toTime(s.data?.default_time)
+        }
+
+        const wi = await supabase.from('weeks').insert(reviewWeek).select().single()
+        if (wi.error) throw wi.error
+        w.data = [wi.data, ...(w.data || [])]
+
+        const weekdays = ['Segunda','Terça','Quarta','Quinta','Sexta']
+        const reviewPosts = weekdays.map((weekday, i) => {
+          const date = addDays('2026-09-28', i)
+          return {
+            id: date,
+            week_id: '2026-09-28',
+            post_date: date,
+            weekday,
+            service: '',
+            title: 'Arte pendente — aguardando matriz aprovada',
+            subtitle: 'Referência oficial: artes aprovadas de 17–21/08.',
+            caption: '',
+            whatsapp_text: '',
+            hashtags: '#ComunicacaoVisual #Immagine #SaoJoseDoRioPreto',
+            image_url: null,
+            publish_time: toTime(s.data?.default_time),
+            channel: 'ambos',
+            notes: 'Não improvisar outro layout.',
+            status: 'para_aprovacao',
+            ready: false
+          }
+        })
+
+        const pi = await supabase.from('posts').insert(reviewPosts).select()
+        if (pi.error) throw pi.error
+        p.data = [...(p.data || []), ...(pi.data || [])]
+      }
+
       setWeeks(w.data || [])
       setPosts(p.data || [])
       setDbAssets(a.data || [])
       setSettings(s.data)
 
-      if (
-        !w.data?.some(x => x.id === currentWeekId) &&
-        w.data?.[0]
-      ) {
+      const targetWeek = w.data?.find(x => x.id === '2026-09-28')
+      const selectedExists = w.data?.some(x => x.id === currentWeekId)
+
+      // A semana operacional atual é 28/09–02/10. Migra automaticamente
+      // quem ainda ficou preso à semana anterior no localStorage.
+      if (targetWeek && (!selectedExists || currentWeekId === '2026-09-21')) {
+        setCurrentWeekId(targetWeek.id)
+      } else if (!selectedExists && w.data?.[0]) {
         setCurrentWeekId(w.data[0].id)
       }
 
@@ -1967,7 +2025,7 @@ function App() {
 
     if (
       !window.confirm(
-        'Aprovar esta semana? O Instagram será programado automaticamente no Buffer. O WhatsApp ficará disponível para compartilhar em 1 toque.'
+        'Aprovar esta semana? Esta ação registra a aprovação, mas não publica nem agenda nada automaticamente.'
       )
     ) {
       return
@@ -2025,33 +2083,12 @@ function App() {
         }
       })
 
-    const {
-      data: bufferResult,
-      error: bufferError
-    } = await supabase.functions.invoke(
-      'buffer-schedule-approved',
-      {
-        body: {
-          week_id: currentWeek.id
-        }
-      }
-    )
-
-    if (bufferError) {
-      await loadData()
-
-      return notify(
-        `Semana aprovada, mas houve erro ao programar no Buffer: ${bufferError.message}`,
-        'error'
-      )
-    }
-
+    // Aprovação e publicação são etapas separadas.
+    // Nenhuma integração externa é acionada automaticamente aqui.
     await loadData()
 
     notify(
-      bufferResult?.scheduled_count
-        ? `Semana aprovada e ${bufferResult.scheduled_count} post(s) programado(s) no Buffer.`
-        : 'Semana aprovada e programação do Instagram conferida.'
+      'Semana aprovada. Nenhuma publicação ou programação foi realizada.'
     )
   }
 
@@ -2073,7 +2110,7 @@ function App() {
 
     if (hasScheduled) {
       return notify(
-        'Esta semana já possui publicações no Buffer. Para evitar divergências, altere os posts individualmente ou aguarde antes de reabrir a semana.',
+        'Esta semana já possui publicações programadas. Para evitar divergências, altere os posts individualmente ou aguarde antes de reabrir a semana.',
         'error'
       )
     }
@@ -2438,6 +2475,63 @@ function App() {
     notify(
       'Nova semana criada.'
     )
+  }
+
+  async function ensureReviewWeek() {
+    const startDate = '2026-09-28'
+    const endDate = '2026-10-02'
+
+    const existingWeek = weeks.find(w => w.id === startDate)
+    const existingPosts = posts.filter(p => p.week_id === startDate)
+
+    if (!existingWeek) {
+      const wi = await supabase.from('weeks').insert({
+        id: startDate,
+        label: '28 de setembro a 2 de outubro de 2026',
+        start_date: startDate,
+        end_date: endDate,
+        status: 'para_aprovacao',
+        campaign: 'Semana 28/09–02/10',
+        general_instruction: 'Usar exclusivamente a matriz visual aprovada da Immagine. Não publicar nem agendar antes da aprovação.',
+        notes: 'Artes aguardando a matriz aprovada de 17–21/08.',
+        default_time: toTime(settings?.default_time)
+      })
+      if (wi.error) return notify(wi.error.message, 'error')
+    }
+
+    if (existingPosts.length < 5) {
+      const weekdays = ['Segunda','Terça','Quarta','Quinta','Sexta']
+      const missing = weekdays.map((weekday, i) => {
+        const date = addDays(startDate, i)
+        return {
+          id: date,
+          week_id: startDate,
+          post_date: date,
+          weekday,
+          service: '',
+          title: 'Arte pendente — aguardando matriz aprovada',
+          subtitle: 'Referência oficial: artes aprovadas de 17–21/08.',
+          caption: '',
+          whatsapp_text: '',
+          hashtags: '#ComunicacaoVisual #Immagine #SaoJoseDoRioPreto',
+          image_url: null,
+          publish_time: toTime(settings?.default_time),
+          channel: 'ambos',
+          notes: 'Não improvisar novo layout. Inserir somente após recuperar a matriz aprovada.',
+          status: 'para_aprovacao',
+          ready: false
+        }
+      }).filter(row => !existingPosts.some(p => p.id === row.id))
+
+      if (missing.length) {
+        const pi = await supabase.from('posts').insert(missing)
+        if (pi.error) return notify(pi.error.message, 'error')
+      }
+    }
+
+    setCurrentWeekId(startDate)
+    await loadData()
+    notify('Semana 28/09–02/10 preparada para revisão, sem publicação automática.')
   }
 
   async function signOut() {
