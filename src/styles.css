@@ -12,3 +12,40 @@
 @media(max-width:1180px){.calendar-grid{grid-template-columns:repeat(3,1fr)}.library-grid{grid-template-columns:repeat(3,1fr)}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:880px){:root{--sidebar:0px}.sidebar{transform:translateX(-105%);width:280px;transition:.2s}.sidebar.open{transform:translateX(0)}.scrim{display:block;position:fixed;inset:0;border:0;background:rgba(10,28,32,.5);z-index:55}.app-main{margin-left:0}.mobile-menu{display:grid}.topbar{padding:0 16px}.user-email,.sync-pill{display:none}.app-main main{padding:22px 16px}.dashboard-grid,.editor-grid{grid-template-columns:1fr}.preview-card{position:static}.calendar-grid{grid-template-columns:repeat(2,1fr)}.library-grid{grid-template-columns:repeat(2,1fr)}.steps{grid-template-columns:1fr}.auth-shell{grid-template-columns:1fr}.auth-panel{display:none}.auth-card{margin:auto}.history-card{align-items:flex-start;flex-direction:column}.history-actions{flex-wrap:wrap}.page-heading{align-items:flex-start;flex-direction:column}.heading-actions{width:100%}}
 @media(max-width:560px){.stats-grid,.calendar-grid,.library-grid,.form-grid.two{grid-template-columns:1fr}.week-strip{grid-template-columns:repeat(5,minmax(82px,1fr));overflow:auto}.week-strip button{min-width:82px}.topbar-title span{display:none}.action-row .btn{width:100%}.bulk-modal{height:94vh;max-height:94vh}.modal-backdrop{padding:10px}.auth-card{width:92%;padding:22px}.app-main main{padding:18px 12px}.panel{padding:17px}.heading-actions .btn{flex:1}.history-actions{width:100%}.history-actions .btn{flex:1}}
+
+
+/* Rebuild 2026-09 — calendário mais claro e foco na semana em revisão */
+.week-focus-banner{
+  margin:18px 0 4px;
+  padding:16px 18px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:linear-gradient(135deg,#f7fbfa,#eef7f5);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px
+}
+.week-focus-banner strong{
+  display:block;
+  margin-top:4px;
+  font:700 18px Sora,sans-serif;
+  color:var(--ink)
+}
+.week-focus-banner>span{
+  white-space:nowrap;
+  padding:8px 11px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid var(--line);
+  font-size:11px;
+  font-weight:800;
+  color:var(--primary)
+}
+.calendar-grid{align-items:stretch}
+.day-card{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.day-card:hover{transform:translateY(-2px);border-color:#b9d7d4;box-shadow:0 16px 38px rgba(23,63,73,.09)}
+.day-card-top{background:#fbfdfd}
+@media(max-width:560px){
+  .week-focus-banner{align-items:flex-start;flex-direction:column}
+}
