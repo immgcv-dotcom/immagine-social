@@ -2431,6 +2431,63 @@ function App() {
     )
   }
 
+  async function ensureReviewWeek() {
+    const startDate = '2026-09-28'
+    const endDate = '2026-10-02'
+
+    const existingWeek = weeks.find(w => w.id === startDate)
+    const existingPosts = posts.filter(p => p.week_id === startDate)
+
+    if (!existingWeek) {
+      const wi = await supabase.from('weeks').insert({
+        id: startDate,
+        label: '28 de setembro a 2 de outubro de 2026',
+        start_date: startDate,
+        end_date: endDate,
+        status: 'para_aprovacao',
+        campaign: 'Semana 28/09–02/10',
+        general_instruction: 'Usar exclusivamente a matriz visual aprovada da Immagine. Não publicar nem agendar antes da aprovação.',
+        notes: 'Artes aguardando a matriz aprovada de 17–21/08.',
+        default_time: toTime(settings?.default_time)
+      })
+      if (wi.error) return notify(wi.error.message, 'error')
+    }
+
+    if (existingPosts.length < 5) {
+      const weekdays = ['Segunda','Terça','Quarta','Quinta','Sexta']
+      const missing = weekdays.map((weekday, i) => {
+        const date = addDays(startDate, i)
+        return {
+          id: date,
+          week_id: startDate,
+          post_date: date,
+          weekday,
+          service: '',
+          title: 'Arte pendente — aguardando matriz aprovada',
+          subtitle: 'Referência oficial: artes aprovadas de 17–21/08.',
+          caption: '',
+          whatsapp_text: '',
+          hashtags: '#ComunicacaoVisual #Immagine #SaoJoseDoRioPreto',
+          image_url: null,
+          publish_time: toTime(settings?.default_time),
+          channel: 'ambos',
+          notes: 'Não improvisar novo layout. Inserir somente após recuperar a matriz aprovada.',
+          status: 'para_aprovacao',
+          ready: false
+        }
+      }).filter(row => !existingPosts.some(p => p.id === row.id))
+
+      if (missing.length) {
+        const pi = await supabase.from('posts').insert(missing)
+        if (pi.error) return notify(pi.error.message, 'error')
+      }
+    }
+
+    setCurrentWeekId(startDate)
+    await loadData()
+    notify('Semana 28/09–02/10 preparada para revisão, sem publicação automática.')
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
 
