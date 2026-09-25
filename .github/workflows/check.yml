@@ -2,7 +2,7 @@ name: Check build
 
 on:
   push:
-    branches: [rebuild-free-app]
+    branches: [matrix-approved-2026-09-28]
   workflow_dispatch:
 
 permissions:
