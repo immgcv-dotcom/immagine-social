@@ -33,27 +33,6 @@ const LOCAL_ASSETS = [
     public_url: `${BASE}assets/immagine-logo.png`,
     created_at: '2026-09-22T12:00:00Z'
   },
-  {
-    id: 'seed-promocao',
-    name: 'Arte — Promoção geral',
-    type: 'arte_aprovada',
-    public_url: `${BASE}assets/arte-promocao.png`,
-    created_at: '2026-09-22T12:00:00Z'
-  },
-  {
-    id: 'seed-papelaria',
-    name: 'Arte — Papelaria personalizada',
-    type: 'arte_aprovada',
-    public_url: `${BASE}assets/arte-papelaria.png`,
-    created_at: '2026-09-22T12:00:00Z'
-  },
-  {
-    id: 'seed-banners',
-    name: 'Arte — Banners para sua marca',
-    type: 'arte_aprovada',
-    public_url: `${BASE}assets/arte-banners.png`,
-    created_at: '2026-09-22T12:00:00Z'
-  },
 ]
 
 const STATUS = {
@@ -1438,7 +1417,7 @@ function Library({
     <>
       <PageHeading
         title="Biblioteca"
-        description="Logo oficial, artes aprovadas, fotos, modelos e referências."
+        description="Logo oficial, matriz visual aprovada, artes, fotos e referências."
         actions={
           <label className="btn primary upload-label">
             <Upload size={16}/>
@@ -1458,6 +1437,17 @@ function Library({
           </label>
         }
       />
+
+      {assets.some(a => a.type === 'modelo') && (
+        <div className="matrix-approved-banner">
+          <div>
+            <span className="eyebrow">Matriz oficial</span>
+            <strong>Padrão visual aprovado da Immagine</strong>
+            <p>As referências marcadas como matriz devem orientar todas as novas artes. A aprovação da matriz não publica nenhuma postagem.</p>
+          </div>
+          <span>{assets.filter(a => a.type === 'modelo').length} referências</span>
+        </div>
+      )}
 
       <div className="toolbar">
         <select
@@ -1481,7 +1471,7 @@ function Library({
           </option>
 
           <option value="modelo">
-            Modelo
+            Matriz visual aprovada
           </option>
 
           <option value="referencia">
