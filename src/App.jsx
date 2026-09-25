@@ -16,6 +16,7 @@ import {
   Plus,
   RefreshCw,
   Save,
+  Send,
   Settings,
   Sparkles,
   Upload,
@@ -701,6 +702,8 @@ function Calendar({
   setEditingPost,
   setPage,
   onApprove,
+  onSchedule,
+  onPublishNow,
   onReopen,
   onBulk,
   onToast
@@ -736,22 +739,41 @@ function Calendar({
               )
               : currentWeek?.status === 'aprovada'
                 ? (
-                  <button
-                    className="btn warning"
-                    onClick={onReopen}
-                  >
-                    Voltar para edição
-                  </button>
+                  <>
+                    <button
+                      className="btn primary"
+                      onClick={onSchedule}
+                    >
+                      <Send size={16}/>
+                      Programar semana no Instagram
+                    </button>
+                    <button
+                      className="btn warning"
+                      onClick={onReopen}
+                    >
+                      Voltar para edição
+                    </button>
+                  </>
                 )
-                : (
-                  <button
-                    className="btn primary"
-                    onClick={onApprove}
-                  >
-                    <CheckCircle2 size={16}/>
-                    Aprovar semana
-                  </button>
-                )
+                : currentWeek?.status === 'publicada'
+                  ? (
+                    <button
+                      className="btn ghost"
+                      disabled
+                    >
+                      <CheckCircle2 size={16}/>
+                      Semana publicada
+                    </button>
+                  )
+                  : (
+                    <button
+                      className="btn primary"
+                      onClick={onApprove}
+                    >
+                      <CheckCircle2 size={16}/>
+                      Aprovar semana
+                    </button>
+                  )
             }
           </>
         }
@@ -828,9 +850,21 @@ function Calendar({
                 }
               </div>
 
+              {post.channel !== 'whatsapp' &&
+                ['aprovada', 'programada'].includes(post.status) && (
+                  <button
+                    className="btn primary full"
+                    onClick={() => onPublishNow(post)}
+                  >
+                    <Send size={16}/>
+                    Publicar agora no Instagram
+                  </button>
+                )
+              }
+
               {post.channel !== 'instagram' && (
                 <button
-                  className="btn primary full"
+                  className="btn ghost full"
                   onClick={() => shareWhatsAppStatus(post, onToast)}
                 >
                   WhatsApp · Compartilhar status
@@ -1926,13 +1960,35 @@ function App() {
       setDbAssets(a.data || [])
       setSettings(s.data)
 
-      const targetWeek = w.data?.find(x => x.id === '2026-09-28')
       const selectedExists = w.data?.some(x => x.id === currentWeekId)
+      const timezone = s.data?.timezone || 'America/Sao_Paulo'
+      const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date())
 
-      // A semana operacional atual é 28/09–02/10. Migra automaticamente
-      // quem ainda ficou preso à semana anterior no localStorage.
-      if (targetWeek && (!selectedExists || currentWeekId === '2026-09-21')) {
-        setCurrentWeekId(targetWeek.id)
+      const reviewStatuses = ['para_aprovacao', 'em_criacao', 'aprovada']
+      const upcomingReview = [...(w.data || [])]
+        .filter(x => reviewStatuses.includes(x.status) && x.start_date >= today)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date))[0]
+
+      const currentReview = [...(w.data || [])]
+        .filter(
+          x =>
+            reviewStatuses.includes(x.status) &&
+            x.start_date <= today &&
+            x.end_date >= today
+        )
+        .sort((a, b) => b.start_date.localeCompare(a.start_date))[0]
+
+      const activeWeek = upcomingReview || currentReview
+
+      // Sempre abre a semana que está em revisão. Isso evita ficar preso
+      // a uma semana antiga salva no navegador.
+      if (activeWeek && currentWeekId !== activeWeek.id) {
+        setCurrentWeekId(activeWeek.id)
       } else if (!selectedExists && w.data?.[0]) {
         setCurrentWeekId(w.data[0].id)
       }
@@ -2078,7 +2134,84 @@ function App() {
     await loadData()
 
     notify(
-      'Semana aprovada. Nenhuma publicação ou programação foi realizada.'
+      'Semana aprovada. Agora você pode programar a semana ou publicar um post na hora.'
+    )
+  }
+
+  async function scheduleWeek() {
+    if (!currentWeek) return
+
+    if (
+      !window.confirm(
+        'Programar os posts aprovados desta semana no Instagram, usando as datas e horários do calendário?'
+      )
+    ) {
+      return
+    }
+
+    const { data, error } = await supabase.functions.invoke(
+      'buffer-schedule-approved',
+      {
+        body: {
+          week_id: currentWeek.id
+        }
+      }
+    )
+
+    if (error) {
+      return notify(
+        error.message || 'Não foi possível programar a semana.',
+        'error'
+      )
+    }
+
+    await loadData()
+
+    if (data?.failures) {
+      return notify(
+        `Programação concluída com ${data.failures} erro(s). Abra o dia para conferir.`,
+        'error'
+      )
+    }
+
+    notify(
+      `${data?.scheduled_count || 0} publicação(ões) programada(s) pelo próprio Immagine Social.`
+    )
+  }
+
+  async function publishPostNow(post) {
+    if (!post) return
+
+    if (
+      !window.confirm(
+        `Publicar agora no Instagram: "${post.title}"? Esta ação envia o post imediatamente.`
+      )
+    ) {
+      return
+    }
+
+    const { data, error } = await supabase.functions.invoke(
+      'buffer-publish-now',
+      {
+        body: {
+          post_id: post.id
+        }
+      }
+    )
+
+    if (error) {
+      return notify(
+        error.message || 'Não foi possível publicar agora.',
+        'error'
+      )
+    }
+
+    await loadData()
+
+    notify(
+      data?.published
+        ? 'Publicado no Instagram com sucesso.'
+        : 'Enviado para publicação imediata no Instagram.'
     )
   }
 
@@ -2582,6 +2715,8 @@ function App() {
         setEditingPost={setEditingPost}
         setPage={setPage}
         onApprove={approveWeek}
+        onSchedule={scheduleWeek}
+        onPublishNow={publishPostNow}
         onReopen={reopenWeek}
         onBulk={() => setBulkOpen(true)}
         onToast={notify}
