@@ -2,7 +2,7 @@ name: Check build
 
 on:
   push:
-    branches: [rebuild-free-app]
+    branches: [rebuild-free-app, direct-publish-in-app]
   workflow_dispatch:
 
 permissions:
