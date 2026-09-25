@@ -290,8 +290,7 @@ function Login({ onToast }) {
           </h1>
 
           <p>
-            Instagram programado automaticamente pelo Buffer e WhatsApp
-            preparado para compartilhar em um toque.
+            Planeje, revise e aprove o conteúdo da Immagine em um só lugar, sem depender de serviços pagos para editar o calendário.
           </p>
         </div>
       </div>
@@ -536,7 +535,7 @@ function Dashboard({
         <Stat
           label="Aprovados"
           value={approved}
-          helper="inclui programados e publicados"
+          helper="na semana selecionada"
         />
 
         <Stat
@@ -671,7 +670,7 @@ function Dashboard({
           <Step
             n="3"
             title="Aprovar"
-            text="Instagram vai para o Buffer e WhatsApp fica pronto para compartilhar."
+            text="A aprovação fica registrada; publicar é uma ação separada e consciente."
           />
         </div>
       </section>
@@ -1711,8 +1710,7 @@ function SettingsPage({
           </strong>
 
           <p>
-            Depois da aprovação, o Instagram é programado automaticamente
-            pelo Buffer. Para o WhatsApp Status, use o botão Compartilhar
+            Depois da aprovação, nada é publicado automaticamente. Para o WhatsApp Status, use o botão Compartilhar
             status no celular para enviar arte e texto em um toque.
           </p>
         </div>
@@ -2064,7 +2062,7 @@ function App() {
 
     if (hasScheduled) {
       return notify(
-        'Esta semana já possui publicações no Buffer. Para evitar divergências, altere os posts individualmente ou aguarde antes de reabrir a semana.',
+        'Esta semana já possui publicações programadas. Para evitar divergências, altere os posts individualmente ou aguarde antes de reabrir a semana.',
         'error'
       )
     }
