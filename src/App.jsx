@@ -25,6 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
+const APP_VERSION = '2026.10.03-2'
 
 const LOCAL_ASSETS = [
   {
@@ -400,7 +401,7 @@ function Header({
 
       <div className="topbar-title">
         <strong>Immagine Social</strong>
-        <span>Painel de conteúdo e aprovação</span>
+        <span>Painel de conteúdo e aprovação · {APP_VERSION}</span>
       </div>
 
       <div className="topbar-actions">
