@@ -902,10 +902,13 @@ function Editor({
   post,
   assets,
   onSave,
+  onRequestChange,
   onBack,
   onToast
 }) {
   const [form, setForm] = useState(post || {})
+  const [changeRequest, setChangeRequest] = useState('')
+  const [requestBusy, setRequestBusy] = useState(false)
 
   useEffect(() => {
     setForm(post || {})
@@ -1115,6 +1118,29 @@ function Editor({
               Marcar como pronto para revisão
             </span>
           </label>
+
+          <div className="change-request-box">
+            <strong>Solicitar alteração</strong>
+            <p>Descreva o que precisa mudar nesta arte. O pedido entra automaticamente na fila de execução.</p>
+            <textarea
+              rows="3"
+              value={changeRequest}
+              onChange={e => setChangeRequest(e.target.value)}
+              placeholder="Ex.: trocar a foto, aumentar o telefone e mudar o título..."
+            />
+            <button
+              className="btn ghost"
+              disabled={requestBusy || !changeRequest.trim()}
+              onClick={async () => {
+                setRequestBusy(true)
+                const ok = await onRequestChange(post, changeRequest.trim())
+                if (ok) setChangeRequest('')
+                setRequestBusy(false)
+              }}
+            >
+              {requestBusy ? 'Enviando...' : 'Enviar pedido de alteração'}
+            </button>
+          </div>
 
           <div className="action-row">
             <button
@@ -2027,6 +2053,35 @@ function App() {
     return [...map.values()]
   }, [dbAssets])
 
+  async function requestPostChange(post, requestText) {
+    const { error } = await supabase
+      .from('post_change_requests')
+      .insert({
+        post_id: post.id,
+        week_id: post.week_id,
+        request_text: requestText,
+        status: 'pendente',
+        source: 'web'
+      })
+
+    if (error) {
+      notify(error.message || 'Não foi possível enviar o pedido de alteração.', 'error')
+      return false
+    }
+
+    await supabase
+      .from('posts')
+      .update({
+        status: 'em_criacao',
+        ready: false
+      })
+      .eq('id', post.id)
+
+    notify('Pedido enviado. A alteração entrou automaticamente na fila.')
+    await loadData()
+    return true
+  }
+
   async function savePost(form) {
     const patch = {
       service: form.service,
@@ -2739,6 +2794,7 @@ function App() {
         post={editingPost}
         assets={assets.filter(a => a.type !== 'logo')}
         onSave={savePost}
+        onRequestChange={requestPostChange}
         onBack={() => setPage('calendario')}
         onToast={notify}
       />
