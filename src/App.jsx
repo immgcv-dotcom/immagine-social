@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-5'
+const APP_VERSION = '2026.10.05-6'
 
 const LOCAL_ASSETS = [
   {
@@ -1247,9 +1247,13 @@ function BulkDialog({
   week,
   posts,
   onClose,
-  onSave
+  onSave,
+  onRequestWeekChange,
+  onToast
 }) {
   const [tab, setTab] = useState('geral')
+  const [weekRequest, setWeekRequest] = useState('')
+  const [weekRequestBusy, setWeekRequestBusy] = useState(false)
 
   const [weekForm, setWeekForm] = useState({
     campaign: week.campaign || '',
@@ -1352,6 +1356,25 @@ function BulkDialog({
                     }
                   />
                 </Field>
+
+                <div className="change-request-box">
+                  <strong>Solicitar alteração da semana toda</strong>
+                  <p>Escreva uma única orientação para as 5 artes. O pedido entra automaticamente na fila.</p>
+                  <textarea rows="4" value={weekRequest} onChange={e => setWeekRequest(e.target.value)} placeholder="Ex.: refazer as 5 artes seguindo exatamente a matriz aprovada..." />
+                  <button type="button" className="btn ghost" disabled={weekRequestBusy || !weekRequest.trim()} onClick={async e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setWeekRequestBusy(true)
+                    try {
+                      const ok = await onRequestWeekChange(week, weekRequest.trim())
+                      if (ok) setWeekRequest('')
+                    } catch (error) {
+                      onToast('Pedido NÃO enviado: ' + (error?.message || 'erro inesperado.'), 'error')
+                    } finally {
+                      setWeekRequestBusy(false)
+                    }
+                  }}>{weekRequestBusy ? 'Enviando...' : 'Enviar alteração da semana toda'}</button>
+                </div>
 
                 <Field label="Horário padrão">
                   <input
@@ -2099,6 +2122,27 @@ function App() {
     }
 
     notify('Pedido confirmado no banco. Protocolo: ' + String(check.data.id).slice(0, 8))
+    await loadData()
+    return true
+  }
+
+  async function requestWeekChange(week, requestText) {
+    const text = requestText.trim()
+    if (!text) return false
+    const auth = await supabase.auth.getUser()
+    if (auth.error || !auth.data?.user) {
+      notify('Sua sessão expirou. Entre novamente.', 'error')
+      return false
+    }
+    const result = await supabase.rpc('submit_week_change_request', {
+      p_week_id: week.id,
+      p_request_text: text
+    })
+    if (result.error || !result.data) {
+      notify('Pedido NÃO enviado: ' + (result.error?.message || 'o banco não confirmou.'), 'error')
+      return false
+    }
+    notify('Alteração da semana toda confirmada. Protocolo: ' + String(result.data).slice(0, 8))
     await loadData()
     return true
   }
@@ -2889,6 +2933,8 @@ function App() {
           }
           onClose={() => setBulkOpen(false)}
           onSave={saveBulk}
+          onRequestWeekChange={requestWeekChange}
+          onToast={notify}
         />
       )}
 
