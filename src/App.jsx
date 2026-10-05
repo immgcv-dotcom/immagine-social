@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-7'
+const APP_VERSION = '2026.10.05-8'
 
 const LOCAL_ASSETS = [
   {
@@ -2027,6 +2027,33 @@ function App() {
       setPosts(p.data || [])
       setDbAssets(a.data || [])
       setSettings(s.data)
+
+      // Recupera automaticamente pedidos que foram registrados antes do
+      // motor de geração automática existir ou se a chamada anterior falhou.
+      const pendingGeneration = await supabase
+        .from('post_change_requests')
+        .select('id')
+        .eq('status', 'pendente')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!pendingGeneration.error && pendingGeneration.data?.id) {
+        const requestId = pendingGeneration.data.id
+        const key = 'generation-started-' + requestId
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1')
+          const generation = await supabase.functions.invoke('generate-change-request', {
+            body: { request_id: requestId }
+          })
+          if (generation.error) {
+            sessionStorage.removeItem(key)
+            notify('Pedido está salvo, mas a criação automática ainda não iniciou: ' + generation.error.message, 'error')
+          } else {
+            notify('Criação automática iniciada para o pedido ' + String(requestId).slice(0, 8) + '.')
+          }
+        }
+      }
 
       const selectedExists = w.data?.some(x => x.id === currentWeekId)
       const timezone = s.data?.timezone || 'America/Sao_Paulo'
