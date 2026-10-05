@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-4'
+const APP_VERSION = '2026.10.05-5'
 
 const LOCAL_ASSETS = [
   {
@@ -1130,13 +1130,22 @@ function Editor({
               placeholder="Ex.: trocar a foto, aumentar o telefone e mudar o título..."
             />
             <button
+              type="button"
               className="btn ghost"
               disabled={requestBusy || !changeRequest.trim()}
-              onClick={async () => {
+              onClick={async (event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                if (requestBusy || !changeRequest.trim()) return
                 setRequestBusy(true)
-                const ok = await onRequestChange(post, changeRequest.trim())
-                if (ok) setChangeRequest('')
-                setRequestBusy(false)
+                try {
+                  const ok = await onRequestChange(post, changeRequest.trim())
+                  if (ok) setChangeRequest('')
+                } catch (error) {
+                  onToast('Pedido NÃO enviado: ' + (error?.message || 'erro inesperado.'), 'error')
+                } finally {
+                  setRequestBusy(false)
+                }
               }}
             >
               {requestBusy ? 'Enviando...' : 'Enviar pedido de alteração'}
