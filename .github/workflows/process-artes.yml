@@ -1,12 +1,21 @@
-name: Processar artes Immagine
+name: Processar artes Immagine gratis
 on:
   push:
     paths:
       - '.github/trigger-artes.txt'
+  workflow_dispatch:
 jobs:
   gerar:
     runs-on: ubuntu-latest
     steps:
-      - name: Disparar geracao
-        run: |
-          curl --fail --show-error --silent --max-time 60 -X POST 'https://vmitpfyqnlsrrrbvgjeo.supabase.co/functions/v1/generate-change-request' -H 'content-type: application/json' -H 'x-service-role: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' --data '{"request_id":"91a188bc-89b0-49bf-8a92-ba2239188550"}'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar renderizador gratuito
+        run: npm install sharp@0.33.5
+      - name: Gerar cinco artes sem API paga
+        env:
+          SUPABASE_URL: https://vmitpfyqnlsrrrbvgjeo.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/gerar-artes-gratis.mjs
