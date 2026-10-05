@@ -2261,41 +2261,12 @@ function App() {
         }
       })
 
-    const { data: autoData, error: autoError } =
-      await supabase.functions.invoke(
-        'buffer-activate-approved-week',
-        {
-          body: {
-            week_id: currentWeek.id
-          }
-        }
-      )
-
+    // O banco dispara automaticamente a publicação/programação
+    // quando o status da semana muda para "aprovada".
     await loadData()
 
-    if (autoError) {
-      return notify(
-        'A semana foi aprovada, mas a publicação/programação automática não terminou: ' +
-          (autoError.message || 'erro na integração.'),
-        'error'
-      )
-    }
-
-    const failed = Array.isArray(autoData?.results)
-      ? autoData.results.filter(item => item?.ok === false).length
-      : 0
-
-    if (failed) {
-      return notify(
-        `Semana aprovada, mas ${failed} publicação(ões) precisam de atenção.`,
-        'error'
-      )
-    }
-
     notify(
-      autoData?.week_status === 'publicada'
-        ? 'Semana aprovada e publicada.'
-        : 'Semana aprovada. O que era para agora foi enviado e os próximos posts foram programados automaticamente.'
+      'Semana aprovada. O Immagine Social já iniciou automaticamente a publicação do que estiver para agora e o agendamento dos próximos dias.'
     )
   }
 
