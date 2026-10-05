@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-2'
+const APP_VERSION = '2026.10.05-3'
 
 const LOCAL_ASSETS = [
   {
@@ -2055,15 +2055,41 @@ function App() {
   }, [dbAssets])
 
   async function requestPostChange(post, requestText) {
-    const result = await supabase.rpc('submit_post_change_request', {
-      p_post_id: post.id,
-      p_request_text: requestText.trim()
-    })
-    if (result.error || !result.data) {
-      notify(result.error?.message || 'Falha ao registrar pedido.', 'error')
+    const text = requestText.trim()
+    if (!text) {
+      notify('Descreva a alteração antes de enviar.', 'error')
       return false
     }
-    notify('Pedido confirmado na fila.')
+
+    const auth = await supabase.auth.getUser()
+    if (auth.error || !auth.data?.user) {
+      notify('Sua sessão expirou. Saia e entre novamente antes de enviar.', 'error')
+      return false
+    }
+
+    const result = await supabase.rpc('submit_post_change_request', {
+      p_post_id: post.id,
+      p_request_text: text
+    })
+
+    if (result.error || !result.data) {
+      notify('Pedido NÃO enviado: ' + (result.error?.message || 'o banco não confirmou o recebimento.'), 'error')
+      return false
+    }
+
+    const check = await supabase
+      .from('post_change_requests')
+      .select('id,status')
+      .eq('id', result.data)
+      .maybeSingle()
+
+    if (check.error || !check.data?.id) {
+      notify('Pedido gravado, mas a confirmação visual falhou. Não reenvie.', 'error')
+      await loadData()
+      return true
+    }
+
+    notify('Pedido confirmado no banco. Protocolo: ' + String(check.data.id).slice(0, 8))
     await loadData()
     return true
   }
