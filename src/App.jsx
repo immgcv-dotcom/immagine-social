@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-1'
+const APP_VERSION = '2026.10.05-2'
 
 const LOCAL_ASSETS = [
   {
@@ -2055,37 +2055,15 @@ function App() {
   }, [dbAssets])
 
   async function requestPostChange(post, requestText) {
-    const { data: request, error } = await supabase
-      .from('post_change_requests')
-      .insert({
-        post_id: post.id,
-        week_id: post.week_id,
-        request_text: requestText,
-        status: 'pendente',
-        source: 'web'
-      })
-      .select('id, status, created_at')
-      .single()
-
-    if (error || !request?.id) {
-      notify(error?.message || 'O pedido não foi confirmado pelo banco. Tente novamente.', 'error')
+    const result = await supabase.rpc('submit_post_change_request', {
+      p_post_id: post.id,
+      p_request_text: requestText.trim()
+    })
+    if (result.error || !result.data) {
+      notify(result.error?.message || 'Falha ao registrar pedido.', 'error')
       return false
     }
-
-    const { error: postError } = await supabase
-      .from('posts')
-      .update({
-        status: 'em_criacao',
-        ready: false
-      })
-      .eq('id', post.id)
-
-    if (postError) {
-      notify('Pedido recebido, mas não foi possível atualizar o status do post. O pedido continua salvo na fila.', 'error')
-      return true
-    }
-
-    notify('Pedido CONFIRMADO no banco e colocado na fila de alteração.')
+    notify('Pedido confirmado na fila.')
     await loadData()
     return true
   }
