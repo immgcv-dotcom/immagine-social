@@ -4,8 +4,6 @@ on:
     paths:
       - '.github/trigger-artes.txt'
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
 concurrency:
   group: immagine-artes
   cancel-in-progress: false
@@ -39,14 +37,3 @@ jobs:
           git config user.email "immagine-bot@users.noreply.github.com"
           git add public/assets/semana-2026-10-05-final
           git diff --cached --quiet || (git commit -m "Gera artes automaticamente da fila" && git push)
-      - name: Entregar no app somente após geração bem-sucedida
-        if: steps.fila.outputs.processar == 'true'
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          for P in '2026-10-05:01.webp' '2026-10-06:02.webp' '2026-10-07:03.webp' '2026-10-08:04.webp' '2026-10-09:05.webp'; do
-            ID="${P%%:*}"; IMG="${P##*:}"
-            curl -fsS -X PATCH "https://vmitpfyqnlsrrrbvgjeo.supabase.co/rest/v1/posts?id=eq.$ID" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H 'Content-Type: application/json' --data "{\"status\":\"para_aprovacao\",\"ready\":false,\"image_url\":\"/assets/semana-2026-10-05-final/$IMG?v=${GITHUB_RUN_ID}\"}"
-          done
-          curl -fsS -X PATCH 'https://vmitpfyqnlsrrrbvgjeo.supabase.co/rest/v1/weeks?id=eq.2026-10-05' -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H 'Content-Type: application/json' --data '{"status":"para_aprovacao"}'
-          curl -fsS -X PATCH 'https://vmitpfyqnlsrrrbvgjeo.supabase.co/rest/v1/post_change_requests?id=eq.a9fff107-275e-40ed-8acf-aede54d269e9' -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H 'Content-Type: application/json' --data '{"status":"concluido","resolution":"5 artes novas com fotografias distintas por serviço, mantendo matriz, rodapé, logo e telefone; enviadas para aprovação."}'
