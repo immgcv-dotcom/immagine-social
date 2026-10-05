@@ -7,15 +7,20 @@ on:
 jobs:
   gerar:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar renderizador gratuito
-        run: npm install sharp@0.33.5
-      - name: Gerar cinco artes sem API paga
-        env:
-          SUPABASE_URL: https://vmitpfyqnlsrrrbvgjeo.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/gerar-artes-gratis.mjs
+      - name: Renderizar gratuitamente
+        run: |
+          npm install --no-save sharp@0.33.5
+          node scripts/render-week.mjs
+      - name: Salvar artes
+        run: |
+          git config user.name "immagine-bot"
+          git config user.email "immagine-bot@users.noreply.github.com"
+          git add public/assets/semana-2026-10-05-final
+          git diff --cached --quiet || (git commit -m "Gera artes semana 2026-10-05" && git push)
