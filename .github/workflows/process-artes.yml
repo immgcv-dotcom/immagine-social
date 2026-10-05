@@ -1,0 +1,12 @@
+name: Processar artes Immagine
+on:
+  push:
+    paths:
+      - '.github/trigger-artes.txt'
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar geracao
+        run: |
+          curl --fail --show-error --silent --max-time 60 -X POST 'https://vmitpfyqnlsrrrbvgjeo.supabase.co/functions/v1/generate-change-request' -H 'content-type: application/json' -H 'x-service-role: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' --data '{"request_id":"91a188bc-89b0-49bf-8a92-ba2239188550"}'
