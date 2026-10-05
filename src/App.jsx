@@ -2028,32 +2028,8 @@ function App() {
       setDbAssets(a.data || [])
       setSettings(s.data)
 
-      // Recupera automaticamente pedidos que foram registrados antes do
-      // motor de geração automática existir ou se a chamada anterior falhou.
-      const pendingGeneration = await supabase
-        .from('post_change_requests')
-        .select('id')
-        .eq('status', 'pendente')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!pendingGeneration.error && pendingGeneration.data?.id) {
-        const requestId = pendingGeneration.data.id
-        const key = 'generation-started-' + requestId
-        if (!sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, '1')
-          const generation = await supabase.functions.invoke('generate-change-request', {
-            body: { request_id: requestId }
-          })
-          if (generation.error) {
-            sessionStorage.removeItem(key)
-            notify('Pedido está salvo, mas a criação automática ainda não iniciou: ' + generation.error.message, 'error')
-          } else {
-            notify('Criação automática iniciada para o pedido ' + String(requestId).slice(0, 8) + '.')
-          }
-        }
-      }
+      // Pedidos de alteração são processados pelo fluxo gratuito do GitHub.
+      // O app apenas registra o pedido; não chama mais a Edge Function paga/antiga.
 
       const selectedExists = w.data?.some(x => x.id === currentWeekId)
       const timezone = s.data?.timezone || 'America/Sao_Paulo'
@@ -2148,15 +2124,7 @@ function App() {
       return true
     }
 
-    const generation = await supabase.functions.invoke('generate-change-request', {
-      body: { request_id: check.data.id }
-    })
-    if (generation.error) {
-      notify('Pedido gravado, mas a criação automática não iniciou: ' + generation.error.message, 'error')
-      await loadData()
-      return true
-    }
-    notify('Pedido confirmado e criação automática iniciada. Protocolo: ' + String(check.data.id).slice(0, 8))
+    notify('Pedido confirmado e colocado na fila de criação. Protocolo: ' + String(check.data.id).slice(0, 8))
     await loadData()
     return true
   }
@@ -2177,15 +2145,7 @@ function App() {
       notify('Pedido NÃO enviado: ' + (result.error?.message || 'o banco não confirmou.'), 'error')
       return false
     }
-    const generation = await supabase.functions.invoke('generate-change-request', {
-      body: { request_id: result.data }
-    })
-    if (generation.error) {
-      notify('Pedido salvo, mas a criação automática não iniciou: ' + generation.error.message, 'error')
-      await loadData()
-      return true
-    }
-    notify('Alteração confirmada e criação das 5 artes iniciada. Protocolo: ' + String(result.data).slice(0, 8))
+    notify('Alteração da semana confirmada e colocada na fila. Protocolo: ' + String(result.data).slice(0, 8))
     await loadData()
     return true
   }
