@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.03-2'
+const APP_VERSION = '2026.10.05-1'
 
 const LOCAL_ASSETS = [
   {
@@ -2055,7 +2055,7 @@ function App() {
   }, [dbAssets])
 
   async function requestPostChange(post, requestText) {
-    const { error } = await supabase
+    const { data: request, error } = await supabase
       .from('post_change_requests')
       .insert({
         post_id: post.id,
@@ -2064,13 +2064,15 @@ function App() {
         status: 'pendente',
         source: 'web'
       })
+      .select('id, status, created_at')
+      .single()
 
-    if (error) {
-      notify(error.message || 'Não foi possível enviar o pedido de alteração.', 'error')
+    if (error || !request?.id) {
+      notify(error?.message || 'O pedido não foi confirmado pelo banco. Tente novamente.', 'error')
       return false
     }
 
-    await supabase
+    const { error: postError } = await supabase
       .from('posts')
       .update({
         status: 'em_criacao',
@@ -2078,7 +2080,12 @@ function App() {
       })
       .eq('id', post.id)
 
-    notify('Pedido enviado. A alteração entrou automaticamente na fila.')
+    if (postError) {
+      notify('Pedido recebido, mas não foi possível atualizar o status do post. O pedido continua salvo na fila.', 'error')
+      return true
+    }
+
+    notify('Pedido CONFIRMADO no banco e colocado na fila de alteração.')
     await loadData()
     return true
   }
