@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-3'
+const APP_VERSION = '2026.10.05-4'
 
 const LOCAL_ASSETS = [
   {
