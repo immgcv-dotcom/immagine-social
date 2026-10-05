@@ -4,6 +4,11 @@ on:
     paths:
       - '.github/trigger-artes.txt'
   workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+concurrency:
+  group: immagine-artes
+  cancel-in-progress: false
 jobs:
   gerar:
     runs-on: ubuntu-latest
@@ -14,13 +19,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Verificar fila no Supabase
+        id: fila
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          STATUS=$(curl -fsS 'https://vmitpfyqnlsrrrbvgjeo.supabase.co/rest/v1/post_change_requests?select=id,status&status=in.(pendente,em_andamento)&order=created_at.desc&limit=1' -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          echo "fila=$STATUS" >> "$GITHUB_OUTPUT"
+          if [ "$STATUS" = "[]" ]; then echo "processar=false" >> "$GITHUB_OUTPUT"; else echo "processar=true" >> "$GITHUB_OUTPUT"; fi
       - name: Renderizar gratuitamente
+        if: steps.fila.outputs.processar == 'true'
         run: |
           npm install --no-save sharp@0.33.5
           node scripts/render-week.mjs
       - name: Salvar artes
+        if: steps.fila.outputs.processar == 'true'
         run: |
           git config user.name "immagine-bot"
           git config user.email "immagine-bot@users.noreply.github.com"
           git add public/assets/semana-2026-10-05-final
-          git diff --cached --quiet || (git commit -m "Gera artes semana 2026-10-05" && git push)
+          git diff --cached --quiet || (git commit -m "Gera artes automaticamente da fila" && git push)
