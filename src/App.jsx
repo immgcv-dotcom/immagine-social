@@ -25,7 +25,7 @@ import {
 import { supabase, STORAGE_BUCKET } from './supabase'
 
 const BASE = import.meta.env.BASE_URL
-const APP_VERSION = '2026.10.05-6'
+const APP_VERSION = '2026.10.05-7'
 
 const LOCAL_ASSETS = [
   {
@@ -2121,7 +2121,15 @@ function App() {
       return true
     }
 
-    notify('Pedido confirmado no banco. Protocolo: ' + String(check.data.id).slice(0, 8))
+    const generation = await supabase.functions.invoke('generate-change-request', {
+      body: { request_id: check.data.id }
+    })
+    if (generation.error) {
+      notify('Pedido gravado, mas a criação automática não iniciou: ' + generation.error.message, 'error')
+      await loadData()
+      return true
+    }
+    notify('Pedido confirmado e criação automática iniciada. Protocolo: ' + String(check.data.id).slice(0, 8))
     await loadData()
     return true
   }
@@ -2142,7 +2150,15 @@ function App() {
       notify('Pedido NÃO enviado: ' + (result.error?.message || 'o banco não confirmou.'), 'error')
       return false
     }
-    notify('Alteração da semana toda confirmada. Protocolo: ' + String(result.data).slice(0, 8))
+    const generation = await supabase.functions.invoke('generate-change-request', {
+      body: { request_id: result.data }
+    })
+    if (generation.error) {
+      notify('Pedido salvo, mas a criação automática não iniciou: ' + generation.error.message, 'error')
+      await loadData()
+      return true
+    }
+    notify('Alteração confirmada e criação das 5 artes iniciada. Protocolo: ' + String(result.data).slice(0, 8))
     await loadData()
     return true
   }
