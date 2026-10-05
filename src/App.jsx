@@ -2203,7 +2203,7 @@ function App() {
 
     if (
       !window.confirm(
-        'Aprovar esta semana? Esta ação registra a aprovação, mas não publica nem agenda nada automaticamente.'
+        'Aprovar esta semana? Ao confirmar, o Immagine Social publicará automaticamente o que estiver vencido/para hoje e programará os próximos dias.'
       )
     ) {
       return
@@ -2261,12 +2261,41 @@ function App() {
         }
       })
 
-    // Aprovação e publicação são etapas separadas.
-    // Nenhuma integração externa é acionada automaticamente aqui.
+    const { data: autoData, error: autoError } =
+      await supabase.functions.invoke(
+        'buffer-activate-approved-week',
+        {
+          body: {
+            week_id: currentWeek.id
+          }
+        }
+      )
+
     await loadData()
 
+    if (autoError) {
+      return notify(
+        'A semana foi aprovada, mas a publicação/programação automática não terminou: ' +
+          (autoError.message || 'erro na integração.'),
+        'error'
+      )
+    }
+
+    const failed = Array.isArray(autoData?.results)
+      ? autoData.results.filter(item => item?.ok === false).length
+      : 0
+
+    if (failed) {
+      return notify(
+        `Semana aprovada, mas ${failed} publicação(ões) precisam de atenção.`,
+        'error'
+      )
+    }
+
     notify(
-      'Semana aprovada. Agora você pode programar a semana ou publicar um post na hora.'
+      autoData?.week_status === 'publicada'
+        ? 'Semana aprovada e publicada.'
+        : 'Semana aprovada. O que era para agora foi enviado e os próximos posts foram programados automaticamente.'
     )
   }
 
