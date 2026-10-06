@@ -685,7 +685,7 @@ function Dashboard({
             </span>
 
             <h3>
-              Publicação só é liberada depois da sua aprovação
+              A aprovação libera o fluxo automático da marca
             </h3>
           </div>
         </div>
@@ -706,7 +706,7 @@ function Dashboard({
           <Step
             n="3"
             title="Aprovar"
-            text="A aprovação fica registrada; publicar é uma ação separada e consciente."
+            text="Ao aprovar, o sistema publica o que for para agora e programa automaticamente os próximos dias."
           />
         </div>
       </section>
