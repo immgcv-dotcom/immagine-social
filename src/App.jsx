@@ -255,7 +255,7 @@ function Login({ onToast }) {
           />
 
           <div>
-            <strong>Immagine Social</strong>
+            <strong>Social Hub</strong>
             <span>Painel de conteúdo e aprovação</span>
           </div>
         </div>
@@ -271,7 +271,7 @@ function Login({ onToast }) {
           </h1>
 
           <p>
-            Planeje, revise e aprove o conteúdo da Immagine em um só lugar, sem depender de serviços pagos para editar o calendário.
+            Planeje, revise e aprove conteúdos da Immagine e da ARKYVON no mesmo painel, com cada marca totalmente separada.
           </p>
         </div>
       </div>
@@ -290,7 +290,7 @@ function Login({ onToast }) {
           </h2>
 
           <p>
-            Acesso restrito à conta autorizada da Immagine.
+            Acesso restrito à conta autorizada.
           </p>
         </div>
 
@@ -331,24 +331,58 @@ function Sidebar({
   page,
   setPage,
   mobileOpen,
-  setMobileOpen
+  setMobileOpen,
+  brand,
+  brands,
+  onBrandChange
 }) {
+  const logo = brand?.logo_url
+    ? resolveImage(brand.logo_url)
+    : null
+
   return (
     <>
       <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div>
           <div className="brand-row">
             <div className="logo-box">
-              <img
-                src={`${BASE}assets/immagine-logo.png`}
-                alt="Immagine"
-              />
+              {logo
+                ? (
+                  <img
+                    src={logo}
+                    alt={brand?.short_name || 'Marca'}
+                  />
+                )
+                : (
+                  <strong>
+                    {(brand?.short_name || 'S').slice(0, 2)}
+                  </strong>
+                )
+              }
             </div>
 
             <div>
-              <strong>Immagine Social</strong>
+              <strong>{brand?.short_name || 'Social Hub'}</strong>
               <span>Painel de conteúdo</span>
             </div>
+          </div>
+
+          <div className="brand-switcher">
+            <span>Marca ativa</span>
+
+            <select
+              value={brand?.key || ''}
+              onChange={e => onBrandChange(e.target.value)}
+            >
+              {brands.map(item => (
+                <option
+                  key={item.key}
+                  value={item.key}
+                >
+                  {item.short_name || item.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <nav>
@@ -369,8 +403,10 @@ function Sidebar({
         </div>
 
         <div className="sidebar-foot">
-          <strong>Você imagina e a gente realiza.</strong>
-          <span>@immaginecvrp · São Paulo</span>
+          <strong>{brand?.slogan || 'Conteúdo, aprovação e publicação.'}</strong>
+          <span>
+            {brand?.instagram || brand?.whatsapp || ''}
+          </span>
         </div>
       </aside>
 
@@ -388,7 +424,10 @@ function Sidebar({
 function Header({
   setMobileOpen,
   session,
-  onSignOut
+  onSignOut,
+  brand,
+  brands,
+  onBrandChange
 }) {
   return (
     <header className="topbar">
@@ -400,11 +439,27 @@ function Header({
       </button>
 
       <div className="topbar-title">
-        <strong>Immagine Social</strong>
+        <strong>{brand?.short_name || 'Social Hub'} Social</strong>
         <span>Painel de conteúdo e aprovação · {APP_VERSION}</span>
       </div>
 
       <div className="topbar-actions">
+        <select
+          className="brand-top-select"
+          value={brand?.key || ''}
+          onChange={e => onBrandChange(e.target.value)}
+          title="Trocar marca"
+        >
+          {brands.map(item => (
+            <option
+              key={item.key}
+              value={item.key}
+            >
+              {item.short_name || item.name}
+            </option>
+          ))}
+        </select>
+
         <span className="sync-pill">
           <span/>
           Dados online
@@ -1881,14 +1936,22 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [loading, setLoading] = useState(false)
 
+  const initialBrandKey =
+    localStorage.getItem('social-brand') ||
+    'immagine'
+
+  const [brands, setBrands] = useState([])
+  const [selectedBrandKey, setSelectedBrandKey] = useState(
+    initialBrandKey
+  )
   const [weeks, setWeeks] = useState([])
   const [posts, setPosts] = useState([])
   const [dbAssets, setDbAssets] = useState([])
   const [settings, setSettings] = useState(null)
 
   const [currentWeekId, setCurrentWeekId] = useState(
-    localStorage.getItem('immagine-current-week') ||
-    '2026-09-28'
+    localStorage.getItem(`social-current-week-${initialBrandKey}`) ||
+    ''
   )
 
   const [page, setPage] = useState('dashboard')
@@ -1934,42 +1997,59 @@ function App() {
     if (session) {
       loadData()
     }
-  }, [session])
+  }, [session, selectedBrandKey])
 
   useEffect(() => {
     localStorage.setItem(
-      'immagine-current-week',
-      currentWeekId
+      'social-brand',
+      selectedBrandKey
     )
-  }, [currentWeekId])
+
+    if (currentWeekId) {
+      localStorage.setItem(
+        `social-current-week-${selectedBrandKey}`,
+        currentWeekId
+      )
+    }
+  }, [selectedBrandKey, currentWeekId])
 
   async function loadData() {
     setLoading(true)
 
     try {
-      const [w, p, a, s] = await Promise.all([
+      const [b, w, p, a, s] = await Promise.all([
+        supabase
+          .from('brands')
+          .select('*')
+          .eq('active', true)
+          .order('name', { ascending: true }),
+
         supabase
           .from('weeks')
           .select('*')
+          .eq('brand_key', selectedBrandKey)
           .order('start_date', { ascending: false }),
 
         supabase
           .from('posts')
           .select('*')
+          .eq('brand_key', selectedBrandKey)
           .order('post_date', { ascending: true }),
 
         supabase
           .from('assets')
           .select('*')
+          .eq('brand_key', selectedBrandKey)
           .order('created_at', { ascending: false }),
 
         supabase
-          .from('settings')
+          .from('brands')
           .select('*')
-          .eq('id', 1)
+          .eq('key', selectedBrandKey)
           .maybeSingle(),
       ])
 
+      if (b.error) throw b.error
       if (w.error) throw w.error
       if (p.error) throw p.error
       if (a.error) throw a.error
@@ -1978,7 +2058,10 @@ function App() {
       // Garante que a semana operacional correta exista. Se a matriz visual
       // aprovada ainda não estiver cadastrada, criamos somente os slots,
       // sem inventar novas artes.
-      if (!w.data?.some(x => x.id === '2026-09-28')) {
+      if (
+        selectedBrandKey === 'immagine' &&
+        !w.data?.some(x => x.id === '2026-09-28')
+      ) {
         const reviewWeek = {
           id: '2026-09-28',
           label: '28 de setembro a 2 de outubro de 2026',
@@ -1988,7 +2071,8 @@ function App() {
           campaign: 'Semana 28/09–02/10',
           general_instruction: 'Usar exclusivamente a matriz visual aprovada de 17–21/08.',
           notes: 'Não publicar nem agendar antes da aprovação explícita.',
-          default_time: toTime(s.data?.default_time)
+          default_time: toTime(s.data?.default_time),
+          brand_key: 'immagine'
         }
 
         const wi = await supabase.from('weeks').insert(reviewWeek).select().single()
@@ -2014,7 +2098,8 @@ function App() {
             channel: 'ambos',
             notes: 'Não improvisar outro layout.',
             status: 'para_aprovacao',
-            ready: false
+            ready: false,
+            brand_key: 'immagine'
           }
         })
 
@@ -2023,10 +2108,18 @@ function App() {
         p.data = [...(p.data || []), ...(pi.data || [])]
       }
 
+      const brandSettings = s.data
+        ? {
+          ...s.data,
+          brand_name: s.data.name
+        }
+        : null
+
+      setBrands(b.data || [])
       setWeeks(w.data || [])
       setPosts(p.data || [])
       setDbAssets(a.data || [])
-      setSettings(s.data)
+      setSettings(brandSettings)
 
       // Pedidos de alteração são processados pelo fluxo gratuito do GitHub.
       // O app apenas registra o pedido; não chama mais a Edge Function paga/antiga.
@@ -2079,15 +2172,29 @@ function App() {
     weeks.find(w => w.id === currentWeekId) ||
     weeks[0]
 
+  const activeBrand =
+    brands.find(b => b.key === selectedBrandKey) ||
+    (settings
+      ? {
+        ...settings,
+        key: selectedBrandKey,
+        short_name: settings.brand_name
+      }
+      : null)
+
   const assets = useMemo(() => {
     const map = new Map()
+    const localAssets =
+      selectedBrandKey === 'immagine'
+        ? LOCAL_ASSETS
+        : []
 
-    ;[...LOCAL_ASSETS, ...dbAssets].forEach(a =>
+    ;[...localAssets, ...dbAssets].forEach(a =>
       map.set(a.name, a)
     )
 
     return [...map.values()]
-  }, [dbAssets])
+  }, [dbAssets, selectedBrandKey])
 
   async function requestPostChange(post, requestText) {
     const text = requestText.trim()
@@ -2203,7 +2310,7 @@ function App() {
 
     if (
       !window.confirm(
-        'Aprovar esta semana? Ao confirmar, o Immagine Social publicará automaticamente o que estiver vencido/para hoje e programará os próximos dias.'
+        `Aprovar esta semana de ${activeBrand?.short_name || 'esta marca'}? Ao confirmar, o sistema publicará automaticamente o que estiver vencido/para hoje e programará os próximos dias.`
       )
     ) {
       return
@@ -2266,7 +2373,7 @@ function App() {
     await loadData()
 
     notify(
-      'Semana aprovada. O Immagine Social já iniciou automaticamente a publicação do que estiver para agora e o agendamento dos próximos dias.'
+      `Semana aprovada. ${activeBrand?.short_name || 'A marca'} já entrou no fluxo automático de publicação e agendamento.`
     )
   }
 
@@ -2307,7 +2414,7 @@ function App() {
     }
 
     notify(
-      `${data?.scheduled_count || 0} publicação(ões) programada(s) pelo próprio Immagine Social.`
+      `${data?.scheduled_count || 0} publicação(ões) programada(s) pelo próprio Social Hub.`
     )
   }
 
@@ -2456,7 +2563,8 @@ function App() {
       channel: d.channel,
       notes: d.notes,
       status: d.status,
-      ready: d.ready
+      ready: d.ready,
+      brand_key: d.brand_key || selectedBrandKey
     }))
 
     const p = await supabase
@@ -2531,7 +2639,8 @@ function App() {
         name: file.name,
         type: 'foto',
         storage_path: path,
-        public_url: publicUrl
+        public_url: publicUrl,
+        brand_key: selectedBrandKey
       })
       .select()
       .single()
@@ -2596,20 +2705,22 @@ function App() {
 
   async function saveSettings(form) {
     const patch = {
-      brand_name: form.brand_name,
-      whatsapp: form.whatsapp,
-      instagram: form.instagram,
+      name: form.brand_name,
+      short_name: form.brand_name,
+      whatsapp: form.whatsapp || null,
+      instagram: form.instagram || null,
       slogan: form.slogan,
       default_time: toTime(form.default_time),
       timezone: form.timezone,
       instagram_enabled: !!form.instagram_enabled,
-      whatsapp_enabled: !!form.whatsapp_enabled
+      whatsapp_enabled: !!form.whatsapp_enabled,
+      updated_at: new Date().toISOString()
     }
 
     const r = await supabase
-      .from('settings')
+      .from('brands')
       .update(patch)
-      .eq('id', 1)
+      .eq('key', selectedBrandKey)
       .select()
       .single()
 
@@ -2620,10 +2731,22 @@ function App() {
       )
     }
 
-    setSettings(r.data)
+    const mapped = {
+      ...r.data,
+      brand_name: r.data.name
+    }
+
+    setSettings(mapped)
+    setBrands(prev =>
+      prev.map(item =>
+        item.key === r.data.key
+          ? r.data
+          : item
+      )
+    )
 
     notify(
-      'Configurações salvas.'
+      'Configurações da marca salvas.'
     )
   }
 
@@ -2652,8 +2775,13 @@ function App() {
         )
       : []
 
+    const weekId =
+      selectedBrandKey === 'immagine'
+        ? startDate
+        : `${selectedBrandKey}:${startDate}`
+
     const week = {
-      id: startDate,
+      id: weekId,
       label: weekLabel(startDate),
       start_date: startDate,
       end_date: end,
@@ -2664,7 +2792,8 @@ function App() {
       default_time: toTime(
         source?.default_time ||
         settings?.default_time
-      )
+      ),
+      brand_key: selectedBrandKey
     }
 
     const wi = await supabase
@@ -2684,8 +2813,11 @@ function App() {
         const date = addDays(startDate, i)
 
         return {
-          id: date,
-          week_id: startDate,
+          id:
+            selectedBrandKey === 'immagine'
+              ? date
+              : `${selectedBrandKey}:${date}`,
+          week_id: weekId,
           post_date: date,
           weekday,
           service: src?.service || '',
@@ -2695,7 +2827,11 @@ function App() {
           whatsapp_text: src?.whatsapp_text || '',
           hashtags:
             src?.hashtags ||
-            '#ComunicacaoVisual #Immagine #SaoJoseDoRioPreto',
+            (
+              selectedBrandKey === 'immagine'
+                ? '#ComunicacaoVisual #Immagine #SaoJoseDoRioPreto'
+                : '#ARKYVON #Tecnologia #Aplicativos #Sistemas #Automacao'
+            ),
           image_url: src?.image_url || null,
           publish_time: toTime(
             src?.publish_time ||
@@ -2704,7 +2840,8 @@ function App() {
           channel: src?.channel || 'ambos',
           notes: '',
           status: 'em_criacao',
-          ready: false
+          ready: false,
+          brand_key: selectedBrandKey
         }
       }
     )
@@ -2722,7 +2859,7 @@ function App() {
 
     setNewWeek(false)
     setDuplicateSource(null)
-    setCurrentWeekId(startDate)
+    setCurrentWeekId(weekId)
     setPage('calendario')
 
     await loadData()
@@ -2909,6 +3046,17 @@ function App() {
         setPage={setPage}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
+        brand={activeBrand}
+        brands={brands}
+        onBrandChange={key => {
+          setSelectedBrandKey(key)
+          setCurrentWeekId(
+            localStorage.getItem(`social-current-week-${key}`) ||
+            ''
+          )
+          setEditingPost(null)
+          setPage('dashboard')
+        }}
       />
 
       <div className="app-main">
@@ -2916,6 +3064,17 @@ function App() {
           setMobileOpen={setMobileOpen}
           session={session}
           onSignOut={signOut}
+          brand={activeBrand}
+          brands={brands}
+          onBrandChange={key => {
+            setSelectedBrandKey(key)
+            setCurrentWeekId(
+              localStorage.getItem(`social-current-week-${key}`) ||
+              ''
+            )
+            setEditingPost(null)
+            setPage('dashboard')
+          }}
         />
 
         <main>
